@@ -119,6 +119,12 @@
             <version>${org.springdoc.version}</version>
         </dependency>
 
+        <!-- Caffeine Cache -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- Apache POI for Excel -->
         <dependency>
             <groupId>org.apache.poi</groupId>
