@@ -39,7 +39,6 @@ public class Manzana {
     @Column(columnDefinition = "geometry(Polygon, 4326)")
     private Geometry poligono;
 
-    @Column(precision = 12, scale = 2)
     private Double area;
 
     @Column(nullable = false)

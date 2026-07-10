@@ -43,10 +43,8 @@ public class Visita {
     @Column(length = 255)
     private String fotografia;
 
-    @Column(precision = 10, scale = 8)
     private Double latitudVisita;
 
-    @Column(precision = 11, scale = 8)
     private Double longitudVisita;
 
     @Column
