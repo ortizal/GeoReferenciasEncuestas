@@ -264,7 +264,7 @@ SELECT 3, id_permiso FROM permisos WHERE nombre IN (
 
 -- Usuario administrador por defecto (contraseña: admin123)
 INSERT INTO usuarios (username, password, nombre, apellido, email, estado, primer_login, activo)
-VALUES ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+VALUES ('admin', '$2b$10$bsgtOk5f/f2IEf1ffZnV/.A3d2yYxrFCY1aPTBopQldzDFGblJ.Gm',
         'Administrador', 'Sistema', 'admin@georeferencias.com', 'ACTIVO', TRUE, TRUE);
 
 INSERT INTO usuario_roles (id_usuario, id_rol) VALUES (1, 1);
