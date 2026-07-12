@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -108,6 +109,26 @@ public class ManzanaController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=manzanas.pdf")
                 .contentType(MediaType.APPLICATION_PDF)
+                .body(datos);
+    }
+
+    @PostMapping("/importar/excel")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Operation(summary = "Importar manzanas desde Excel")
+    public ResponseEntity<ApiResponse<String>> importarExcel(@RequestParam("file") MultipartFile file) {
+        int importadas = manzanaService.importarExcel(file);
+        return ResponseEntity.ok(ApiResponse.exito(
+                importadas + " manzanas importadas", "Importación completada"));
+    }
+
+    @GetMapping("/plantilla/excel")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Operation(summary = "Descargar plantilla Excel para importar manzanas")
+    public ResponseEntity<byte[]> descargarPlantillaExcel() {
+        byte[] datos = manzanaService.descargarPlantillaExcel();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=plantilla_manzanas.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(datos);
     }
 }

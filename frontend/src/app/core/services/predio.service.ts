@@ -21,6 +21,10 @@ export class PredioService {
     return this.http.get<ApiResponse<PaginatedResponse<Predio>>>(this.apiUrl, { params });
   }
 
+  listarTodas(): Observable<ApiResponse<Predio[]>> {
+    return this.http.get<ApiResponse<Predio[]>>(`${this.apiUrl}/listar`);
+  }
+
   listarPorManzana(idManzana: number): Observable<ApiResponse<Predio[]>> {
     return this.http.get<ApiResponse<Predio[]>>(`${this.apiUrl}/manzana/${idManzana}`);
   }
@@ -47,5 +51,15 @@ export class PredioService {
 
   eliminar(id: number): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/${id}`);
+  }
+
+  importarExcel(file: File): Observable<ApiResponse<string>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ApiResponse<string>>(`${this.apiUrl}/importar/excel`, formData);
+  }
+
+  descargarPlantilla(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/plantilla/excel`, { responseType: 'blob' });
   }
 }

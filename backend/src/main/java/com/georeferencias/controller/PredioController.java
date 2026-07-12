@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -115,6 +116,26 @@ public class PredioController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=predios.pdf")
                 .contentType(MediaType.APPLICATION_PDF)
+                .body(datos);
+    }
+
+    @PostMapping("/importar/excel")
+    @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('SUPERVISOR')")
+    @Operation(summary = "Importar predios desde Excel")
+    public ResponseEntity<ApiResponse<String>> importarExcel(@RequestParam("file") MultipartFile file) {
+        int importados = predioService.importarExcel(file);
+        return ResponseEntity.ok(ApiResponse.exito(
+                importados + " predios importados", "Importación completada"));
+    }
+
+    @GetMapping("/plantilla/excel")
+    @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('SUPERVISOR')")
+    @Operation(summary = "Descargar plantilla Excel para importar predios")
+    public ResponseEntity<byte[]> descargarPlantillaExcel() {
+        byte[] datos = predioService.descargarPlantillaExcel();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=plantilla_predios.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(datos);
     }
 }

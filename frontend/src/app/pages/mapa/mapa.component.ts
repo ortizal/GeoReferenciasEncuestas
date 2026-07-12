@@ -1,12 +1,11 @@
 import { Component, OnInit, signal, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import * as L from 'leaflet';
 import { ManzanaService } from '../../core/services/manzana.service';
 import { PredioService } from '../../core/services/predio.service';
 import { VisitaService } from '../../core/services/visita.service';
 import { Manzana, Predio } from '../../core/models/models';
-
-declare const L: any;
 
 @Component({
   selector: 'app-mapa',
@@ -258,11 +257,23 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
   }
 
   loadManzanas() {
-    this.manzanaService.listarConPoligono().subscribe({ next: (r) => { if (r.exitoso) { this.manzanas.set(r.datos); this.renderManzanas(); } } });
+    this.manzanaService.listarConPoligono().subscribe({
+      next: (r) => { if (r.exitoso) { this.manzanas.set(r.datos); this.renderManzanas(); } },
+      error: () => {
+        this.manzanas.set([]);
+        this.renderManzanas();
+      }
+    });
   }
 
   loadPredios() {
-    this.predioService.listarConGeoreferencia().subscribe({ next: (r) => { if (r.exitoso) { this.predios.set(r.datos); this.renderPredios(); } } });
+    this.predioService.listarConGeoreferencia().subscribe({
+      next: (r) => { if (r.exitoso) { this.predios.set(r.datos); this.renderPredios(); } },
+      error: () => {
+        this.predios.set([]);
+        this.renderPredios();
+      }
+    });
   }
 
   private renderManzanas() {
@@ -271,7 +282,7 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
       if (m.poligonoGeoJSON) {
         try {
           const geo = JSON.parse(m.poligonoGeoJSON);
-          const coords = geo.coordinates[0].map((c: number[]) => [c[1], c[0]]);
+          const coords = this.extractPolygonCoordinates(geo);
           const poly = L.polygon(coords, { color: '#2b4d2b', weight: 2, fillColor: '#3d6b3d', fillOpacity: 0.08 });
           poly.bindPopup(`<b>${m.nombre}</b><br>Clave: ${m.claveCatastralManzana}`);
           poly.on('click', () => { this.selectedManzana.set(m); this.selectedPredio.set(null); this.map.fitBounds(poly.getBounds(), { padding: [50, 50] }); });
@@ -279,6 +290,70 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
         } catch (e) {}
       }
     });
+  }
+
+  private extractPolygonCoordinates(geo: any): Array<[number, number]> {
+    const source = geo?.type === 'FeatureCollection' ? geo.features?.[0]?.geometry : geo;
+    if (!source || !source.coordinates) {
+      return [];
+    }
+
+    const firstRing = source.type === 'MultiPolygon'
+      ? source.coordinates?.[0]?.[0]
+      : source.coordinates?.[0];
+
+    if (!Array.isArray(firstRing)) {
+      return [];
+    }
+
+    return firstRing.map((point: number[]) => {
+      const [x, y] = point;
+      if (typeof x !== 'number' || typeof y !== 'number') {
+        return [0, 0] as [number, number];
+      }
+
+      if (Math.abs(x) <= 180 && Math.abs(y) <= 90) {
+        return [y, x] as [number, number];
+      }
+
+      const projected = this.utmToLatLng(x, y, 17, 'N');
+      return [projected.lat, projected.lng] as [number, number];
+    }).filter((point: [number, number]) => point[0] !== 0 || point[1] !== 0);
+  }
+
+  private utmToLatLng(easting: number, northing: number, zone: number, hemisphere: string): { lat: number; lng: number } {
+    const a = 6378137.0;
+    const ecc2 = 0.00669438;
+    const eccPrime2 = ecc2 / (1 - ecc2);
+    const e1 = (1 - Math.sqrt(1 - ecc2)) / (1 + Math.sqrt(1 - ecc2));
+    const lon0 = (zone * 6 - 183) * Math.PI / 180;
+
+    const m = northing;
+    const mu = m / (a * (1 - ecc2 / 4 - 3 * ecc2 * ecc2 / 64 - 5 * ecc2 * ecc2 * ecc2 / 256));
+    const phi1 = mu + (3 * e1 / 2 - 27 * e1 * e1 * e1 / 32) * Math.sin(2 * mu)
+      + (21 * e1 * e1 / 16 - 55 * e1 * e1 * e1 * e1 / 32) * Math.sin(4 * mu)
+      + (151 * e1 * e1 * e1 / 96) * Math.sin(6 * mu);
+
+    const c1 = eccPrime2 * Math.cos(phi1) * Math.cos(phi1);
+    const t1 = Math.tan(phi1) * Math.tan(phi1);
+    const n1 = a / Math.sqrt(1 - ecc2 * Math.sin(phi1) * Math.sin(phi1));
+    const r1 = a * (1 - ecc2) / Math.pow(1 - ecc2 * Math.sin(phi1) * Math.sin(phi1), 1.5);
+    const d = easting / (n1 * 1.0);
+
+    const lat = phi1 - (n1 * Math.tan(phi1) / r1) * (
+      d * d / 2
+      - (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * eccPrime2) * Math.pow(d, 4) / 24
+      + (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * eccPrime2 - 3 * c1 * c1) * Math.pow(d, 6) / 720
+    );
+    const lng = lon0 + (
+      d - (1 + 2 * t1 + c1) * Math.pow(d, 3) / 6
+      + (5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * eccPrime2 + 24 * t1 * t1) * Math.pow(d, 5) / 120
+    ) / Math.cos(phi1);
+
+    return {
+      lat: lat * 180 / Math.PI,
+      lng: lng * 180 / Math.PI
+    };
   }
 
   private renderPredios() {

@@ -3,6 +3,7 @@ package com.georeferencias.service;
 import com.georeferencias.dto.ManzanaDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,4 +19,6 @@ public interface ManzanaService {
     List<ManzanaDTO> listarConPoligono();
     byte[] exportarExcel(String busqueda);
     byte[] exportarPDF(String busqueda);
+    int importarExcel(MultipartFile file);
+    byte[] descargarPlantillaExcel();
 }

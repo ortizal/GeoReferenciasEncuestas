@@ -44,4 +44,14 @@ export class ManzanaService {
   eliminar(id: number): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/${id}`);
   }
+
+  importarExcel(file: File): Observable<ApiResponse<string>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ApiResponse<string>>(`${this.apiUrl}/importar/excel`, formData);
+  }
+
+  descargarPlantilla(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/plantilla/excel`, { responseType: 'blob' });
+  }
 }
