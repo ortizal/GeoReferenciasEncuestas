@@ -98,6 +98,12 @@ export class MapaSelectorComponent implements AfterViewInit, OnDestroy {
     if (this.mode === 'polygon' && this.initialPolygon.length > 0) {
       this.points = [...this.initialPolygon];
       this.renderPolygon();
+      setTimeout(() => {
+        if (this.map && this.points.length > 0) {
+          const bounds = L.latLngBounds(this.points);
+          this.map.fitBounds(bounds, { padding: [50, 50] });
+        }
+      }, 200);
     }
 
     if (this.mode === 'point' && this.initialPoint) {
