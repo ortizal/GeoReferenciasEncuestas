@@ -49,6 +49,9 @@ import { Manzana, Predio } from '../../core/models/models';
       <!-- Map Container -->
       <div class="map-wrapper">
         <div id="map" class="map-canvas"></div>
+        <div style="position:absolute;bottom:10px;left:10px;z-index:1000;background:rgba(0,0,0,0.75);color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;">
+          Manzanas: {{ manzanas().length }} | Predios: {{ predios().length }}
+        </div>
 
         <!-- Info Panel -->
         <div class="info-panel" *ngIf="selectedManzana() || selectedPredio()" [class.slide-in]="true">
@@ -250,7 +253,7 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy() { if (this.map) this.map.remove(); }
 
   private initMap() {
-    this.map = L.map('map').setView([-0.1807, -78.4678], 13);
+    this.map = L.map('map').setView([0.811288, -77.716749], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM', maxZoom: 19 }).addTo(this.map);
     this.manzanaLayer = L.layerGroup().addTo(this.map);
     this.predioLayer = L.layerGroup().addTo(this.map);
@@ -258,8 +261,12 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
 
   loadManzanas() {
     this.manzanaService.listarConPoligono().subscribe({
-      next: (r) => { if (r.exitoso) { this.manzanas.set(r.datos); this.renderManzanas(); } },
-      error: () => {
+      next: (r) => {
+        console.log('Manzanas response:', r);
+        if (r.exitoso) { this.manzanas.set(r.datos); this.renderManzanas(); }
+      },
+      error: (err) => {
+        console.error('Error cargando manzanas:', err);
         this.manzanas.set([]);
         this.renderManzanas();
       }
@@ -268,8 +275,12 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
 
   loadPredios() {
     this.predioService.listarConGeoreferencia().subscribe({
-      next: (r) => { if (r.exitoso) { this.predios.set(r.datos); this.renderPredios(); } },
-      error: () => {
+      next: (r) => {
+        console.log('Predios response:', r);
+        if (r.exitoso) { this.predios.set(r.datos); this.renderPredios(); }
+      },
+      error: (err) => {
+        console.error('Error cargando predios:', err);
         this.predios.set([]);
         this.renderPredios();
       }
@@ -283,11 +294,14 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
         try {
           const geo = JSON.parse(m.poligonoGeoJSON);
           const coords = this.extractPolygonCoordinates(geo);
-          const poly = L.polygon(coords, { color: '#2b4d2b', weight: 2, fillColor: '#3d6b3d', fillOpacity: 0.08 });
-          poly.bindPopup(`<b>${m.nombre}</b><br>Clave: ${m.claveCatastralManzana}`);
-          poly.on('click', () => { this.selectedManzana.set(m); this.selectedPredio.set(null); this.map.fitBounds(poly.getBounds(), { padding: [50, 50] }); });
-          this.manzanaLayer.addLayer(poly);
-        } catch (e) {}
+          console.log(`Manzana "${m.nombre}" coords:`, coords);
+          if (coords.length > 0) {
+            const poly = L.polygon(coords, { color: '#2b4d2b', weight: 2, fillColor: '#3d6b3d', fillOpacity: 0.08 });
+            poly.bindPopup(`<b>${m.nombre}</b><br>Clave: ${m.claveCatastralManzana}`);
+            poly.on('click', () => { this.selectedManzana.set(m); this.selectedPredio.set(null); this.map.fitBounds(poly.getBounds(), { padding: [50, 50] }); });
+            this.manzanaLayer.addLayer(poly);
+          }
+        } catch (e) { console.error(`Error renderizando manzana "${m.nombre}":`, e); }
       }
     });
   }
@@ -360,6 +374,7 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
     this.predioLayer.clearLayers();
     this.predios().forEach(p => {
       if (p.latitud && p.longitud) {
+        console.log(`Predio "${p.claveCatastral}" at [${p.latitud}, ${p.longitud}]`);
         const color = this.getMarkerColor(p.estadoVisita);
         const marker = L.circleMarker([p.latitud, p.longitud], { radius: 7, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9 });
         marker.bindPopup(`<b>${p.claveCatastral}</b><br>${p.propietario}<br><span style="color:${color}">${p.estadoVisita || 'Sin Visitar'}</span>`);

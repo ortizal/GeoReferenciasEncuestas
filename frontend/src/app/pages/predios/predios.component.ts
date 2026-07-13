@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { PredioService } from '../../core/services/predio.service';
 import { ManzanaService } from '../../core/services/manzana.service';
 import { Predio, Manzana } from '../../core/models/models';
+import { MapaSelectorComponent } from '../../shared/components/mapa-selector/mapa-selector.component';
 
 @Component({
   selector: 'app-predios',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MapaSelectorComponent],
   templateUrl: './predios.component.html',
   styleUrl: './predios.component.css'
 })
@@ -28,6 +29,8 @@ export class PrediosComponent implements OnInit {
   formData: any = {};
   predioSeleccionado: Predio | null = null;
   archivoFile: File | null = null;
+  showMapaSelector = signal(false);
+  initialPoint: [number, number] | null = null;
 
   constructor(private predioService: PredioService, private manzanaService: ManzanaService) {}
   ngOnInit() { this.loadManzanas(); this.buscar(); }
@@ -50,4 +53,25 @@ export class PrediosComponent implements OnInit {
 
   exportarExcel() { window.open(`/api/predios/exportar/excel?busqueda=${this.busqueda}`, '_blank'); }
   exportarPDF() { window.open(`/api/predios/exportar/pdf?busqueda=${this.busqueda}`, '_blank'); }
+
+  abrirMapaSelector() {
+    if (this.formData.latitud && this.formData.longitud) {
+      this.initialPoint = [this.formData.latitud, this.formData.longitud];
+    } else {
+      this.initialPoint = null;
+    }
+    this.showMapaSelector.set(true);
+  }
+
+  onMapaSelectorConfirm(result: { point?: [number, number] }) {
+    this.showMapaSelector.set(false);
+    if (result.point) {
+      this.formData.latitud = result.point[0];
+      this.formData.longitud = result.point[1];
+    }
+  }
+
+  onMapaSelectorCancel() {
+    this.showMapaSelector.set(false);
+  }
 }

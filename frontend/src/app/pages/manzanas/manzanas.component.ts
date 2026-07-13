@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ManzanaService } from '../../core/services/manzana.service';
 import { Manzana } from '../../core/models/models';
+import { MapaSelectorComponent } from '../../shared/components/mapa-selector/mapa-selector.component';
 
 @Component({
   selector: 'app-manzanas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MapaSelectorComponent],
   templateUrl: './manzanas.component.html',
   styleUrl: './manzanas.component.css'
 })
@@ -27,6 +28,8 @@ export class ManzanasComponent implements OnInit {
   formData: any = {};
   manzanaSeleccionada: Manzana | null = null;
   archivoFile: File | null = null;
+  showMapaSelector = signal(false);
+  initialPolygon: [number, number][] = [];
 
   constructor(private manzanaService: ManzanaService) {}
   ngOnInit() { this.buscar(); }
@@ -84,4 +87,35 @@ export class ManzanasComponent implements OnInit {
 
   exportarExcel() { window.open(`/api/manzanas/exportar/excel?busqueda=${this.busqueda}`, '_blank'); }
   exportarPDF() { window.open(`/api/manzanas/exportar/pdf?busqueda=${this.busqueda}`, '_blank'); }
+
+  abrirMapaSelector() {
+    if (this.formData.poligonoGeoJSON && this.formData.poligonoGeoJSON.trim()) {
+      try {
+        const geo = JSON.parse(this.formData.poligonoGeoJSON);
+        const source = geo?.type === 'FeatureCollection' ? geo.features?.[0]?.geometry : geo;
+        const ring = source?.type === 'MultiPolygon' ? source.coordinates?.[0]?.[0] : source?.coordinates?.[0];
+        if (Array.isArray(ring)) {
+          this.initialPolygon = ring.map((p: number[]) => [p[1], p[0]]);
+        } else {
+          this.initialPolygon = [];
+        }
+      } catch {
+        this.initialPolygon = [];
+      }
+    } else {
+      this.initialPolygon = [];
+    }
+    this.showMapaSelector.set(true);
+  }
+
+  onMapaSelectorConfirm(result: { polygon?: [number, number][]; geoJSON?: any }) {
+    this.showMapaSelector.set(false);
+    if (result.geoJSON) {
+      this.formData.poligonoGeoJSON = JSON.stringify(result.geoJSON);
+    }
+  }
+
+  onMapaSelectorCancel() {
+    this.showMapaSelector.set(false);
+  }
 }

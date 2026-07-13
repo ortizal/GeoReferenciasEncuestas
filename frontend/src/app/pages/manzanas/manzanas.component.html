@@ -71,7 +71,15 @@
           <div class="form-field"><label>Nombre *</label><input class="form-input" [(ngModel)]="formData.nombre" placeholder="Nombre de la manzana"></div>
           <div class="form-field"><label>Sector</label><input class="form-input" [(ngModel)]="formData.sector" placeholder="Sector"></div>
           <div class="form-field"><label>Barrio</label><input class="form-input" [(ngModel)]="formData.barrio" placeholder="Barrio"></div>
-          <div class="form-field full-width"><label>Polígono (GeoJSON)</label><textarea class="form-textarea" rows="4" [(ngModel)]="formData.poligonoGeoJSON" placeholder="Ingrese el GeoJSON del polígono"></textarea></div>
+          <div class="form-field full-width">
+            <label>Polígono (GeoJSON)</label>
+            <div class="polygon-input-group">
+              <textarea class="form-textarea" rows="4" [(ngModel)]="formData.poligonoGeoJSON" placeholder="Ingrese el GeoJSON del polígono o dibuje en el mapa"></textarea>
+              <button class="btn-map-draw" type="button" (click)="abrirMapaSelector()" title="Dibujar polígono en el mapa">
+                <i class="bi bi-pentagon"></i> Dibujar en Mapa
+              </button>
+            </div>
+          </div>
         </div>
         <div class="import-result" *ngIf="errorMessage()">
           <i class="bi bi-exclamation-circle-fill text-danger"></i> {{ errorMessage() }}
@@ -108,4 +116,13 @@
       </div>
     </div>
   </div>
+
+  <!-- Mapa Selector -->
+  <app-mapa-selector
+    *ngIf="showMapaSelector()"
+    mode="polygon"
+    [initialPolygon]="initialPolygon"
+    (confirmed)="onMapaSelectorConfirm($event)"
+    (cancelled)="onMapaSelectorCancel()">
+  </app-mapa-selector>
 </div>

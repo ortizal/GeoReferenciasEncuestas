@@ -104,3 +104,12 @@
 @keyframes progressIndeterminate { 0% { width: 0%; margin-left: 0; } 50% { width: 60%; margin-left: 20%; } 100% { width: 0%; margin-left: 100%; } }
 
 @media (max-width: 768px) { .page-header { flex-direction: column; gap: var(--space-4); } .form-grid { grid-template-columns: 1fr; } .form-field.full-width { grid-column: span 1; } }
+
+.polygon-input-group { display: flex; flex-direction: column; gap: var(--space-2); }
+.btn-map-draw {
+  display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--primary-300); border-radius: var(--radius-md);
+  background: var(--primary-50); color: var(--primary-700); font-size: var(--text-sm); font-weight: 500;
+  cursor: pointer; transition: all var(--transition-fast); align-self: flex-start;
+}
+.btn-map-draw:hover { background: var(--primary-100); border-color: var(--primary-400); }

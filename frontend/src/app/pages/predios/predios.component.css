@@ -95,3 +95,12 @@
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes progressIndeterminate { 0% { width: 0%; margin-left: 0; } 50% { width: 60%; margin-left: 20%; } 100% { width: 0%; margin-left: 100%; } }
+
+.btn-map-select {
+  display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--primary-300); border-radius: var(--radius-md);
+  background: var(--primary-50); color: var(--primary-700); font-size: var(--text-sm); font-weight: 500;
+  cursor: pointer; transition: all var(--transition-fast);
+}
+.btn-map-select:hover { background: var(--primary-100); border-color: var(--primary-400); }
+.map-select-hint { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-secondary); margin-top: var(--space-1); }

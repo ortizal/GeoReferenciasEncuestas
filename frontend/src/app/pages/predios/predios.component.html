@@ -55,6 +55,15 @@
           <div class="form-field full-width"><label>Dirección *</label><input class="form-input" [(ngModel)]="formData.direccion"></div>
           <div class="form-field"><label>Latitud</label><input class="form-input" type="number" [(ngModel)]="formData.latitud" step="0.00000001"></div>
           <div class="form-field"><label>Longitud</label><input class="form-input" type="number" [(ngModel)]="formData.longitud" step="0.00000001"></div>
+          <div class="form-field full-width">
+            <button class="btn-map-select" type="button" (click)="abrirMapaSelector()" title="Seleccionar ubicación en el mapa">
+              <i class="bi bi-geo-alt"></i> Seleccionar en Mapa
+            </button>
+            <span class="map-select-hint" *ngIf="formData.latitud && formData.longitud">
+              <i class="bi bi-check-circle-fill text-success"></i>
+              Ubicación: {{ formData.latitud | number:'1.8-8' }}, {{ formData.longitud | number:'1.8-8' }}
+            </span>
+          </div>
           <div class="form-field full-width"><label>Observaciones</label><textarea class="form-textarea" rows="3" [(ngModel)]="formData.observaciones"></textarea></div>
         </div>
       </div>
@@ -89,4 +98,13 @@
       </div>
     </div>
   </div>
+
+  <!-- Mapa Selector -->
+  <app-mapa-selector
+    *ngIf="showMapaSelector()"
+    mode="point"
+    [initialPoint]="initialPoint"
+    (confirmed)="onMapaSelectorConfirm($event)"
+    (cancelled)="onMapaSelectorCancel()">
+  </app-mapa-selector>
 </div>
