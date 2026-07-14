@@ -118,11 +118,11 @@
   </div>
 
   <!-- Mapa Selector -->
-  <app-mapa-selector
-    *ngIf="showMapaSelector()"
-    mode="polygon"
-    [initialPolygon]="initialPolygon"
-    (confirmed)="onMapaSelectorConfirm($event)"
-    (cancelled)="onMapaSelectorCancel()">
-  </app-mapa-selector>
 </div>
+<app-mapa-selector
+  *ngIf="showMapaSelector()"
+  mode="polygon"
+  [initialPolygon]="initialPolygon"
+  (confirmed)="onMapaSelectorConfirm($event)"
+  (cancelled)="onMapaSelectorCancel()">
+</app-mapa-selector>

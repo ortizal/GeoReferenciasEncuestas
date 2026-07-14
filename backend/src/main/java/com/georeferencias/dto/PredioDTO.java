@@ -20,7 +20,6 @@ public class PredioDTO {
     @NotBlank(message = "La clave catastral es obligatoria")
     private String claveCatastral;
 
-    @NotBlank(message = "El propietario es obligatorio")
     private String propietario;
 
     @NotBlank(message = "La dirección es obligatoria")
@@ -29,6 +28,22 @@ public class PredioDTO {
     private String telefono;
     private Double latitud;
     private Double longitud;
+    private String referencia;
+    private Double areaTerreno;
+    private Double frentes;
+    private Double norte;
+    private Double sur;
+    private Double este;
+    private Double oeste;
+    private String telefonoPropietario;
+    private Double areaConstruccion;
+    private Integer nroPisos;
+    private String uso;
+    private String nroPredial;
+    private String cedulaCatastral;
+    private String serviciosBasicos;
+    private String codPredio;
+    private String estado;
     private String observaciones;
     private Boolean activo;
     private LocalDateTime fechaCreacion;

@@ -60,6 +60,22 @@ public class PredioServiceImpl implements PredioService {
         predio.setPropietario(dto.getPropietario());
         predio.setDireccion(dto.getDireccion());
         predio.setTelefono(dto.getTelefono());
+        predio.setReferencia(dto.getReferencia());
+        predio.setAreaTerreno(dto.getAreaTerreno());
+        predio.setFrentes(dto.getFrentes());
+        predio.setNorte(dto.getNorte());
+        predio.setSur(dto.getSur());
+        predio.setEste(dto.getEste());
+        predio.setOeste(dto.getOeste());
+        predio.setTelefonoPropietario(dto.getTelefonoPropietario());
+        predio.setAreaConstruccion(dto.getAreaConstruccion());
+        predio.setNroPisos(dto.getNroPisos());
+        predio.setUso(dto.getUso());
+        predio.setNroPredial(dto.getNroPredial());
+        predio.setCedulaCatastral(dto.getCedulaCatastral());
+        predio.setServiciosBasicos(dto.getServiciosBasicos());
+        predio.setCodPredio(dto.getCodPredio());
+        predio.setEstado(dto.getEstado());
         predio.setObservaciones(dto.getObservaciones());
 
         if (dto.getLatitud() != null && dto.getLongitud() != null) {
@@ -138,7 +154,68 @@ public class PredioServiceImpl implements PredioService {
 
     @Override
     public byte[] exportarExcel(String busqueda) {
-        return new byte[0];
+        List<PredioDTO> predios = buscar(busqueda, true, Pageable.unpaged()).getContent();
+
+        try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = wb.createSheet("Predios");
+
+            String[] headers = {
+                "claveCatastral", "propietario", "direccion", "nombreManzana",
+                "telefono", "referencia", "telefonoPropietario", "nroPredial",
+                "cedulaCatastral", "codPredio", "uso", "serviciosBasicos",
+                "estado", "observaciones", "latitud", "longitud",
+                "areaTerreno", "frentes", "norte", "sur", "este", "oeste",
+                "areaConstruccion", "nroPisos"
+            };
+            Row headerRow = sheet.createRow(0);
+            CellStyle headerStyle = wb.createCellStyle();
+            Font headerFont = wb.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            int rowNum = 1;
+            for (PredioDTO p : predios) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(p.getClaveCatastral() != null ? p.getClaveCatastral() : "");
+                row.createCell(1).setCellValue(p.getPropietario() != null ? p.getPropietario() : "");
+                row.createCell(2).setCellValue(p.getDireccion() != null ? p.getDireccion() : "");
+                row.createCell(3).setCellValue(p.getNombreManzana() != null ? p.getNombreManzana() : "");
+                row.createCell(4).setCellValue(p.getTelefono() != null ? p.getTelefono() : "");
+                row.createCell(5).setCellValue(p.getReferencia() != null ? p.getReferencia() : "");
+                row.createCell(6).setCellValue(p.getTelefonoPropietario() != null ? p.getTelefonoPropietario() : "");
+                row.createCell(7).setCellValue(p.getNroPredial() != null ? p.getNroPredial() : "");
+                row.createCell(8).setCellValue(p.getCedulaCatastral() != null ? p.getCedulaCatastral() : "");
+                row.createCell(9).setCellValue(p.getCodPredio() != null ? p.getCodPredio() : "");
+                row.createCell(10).setCellValue(p.getUso() != null ? p.getUso() : "");
+                row.createCell(11).setCellValue(p.getServiciosBasicos() != null ? p.getServiciosBasicos() : "");
+                row.createCell(12).setCellValue(p.getEstado() != null ? p.getEstado() : "");
+                row.createCell(13).setCellValue(p.getObservaciones() != null ? p.getObservaciones() : "");
+                row.createCell(14).setCellValue(p.getLatitud() != null ? p.getLatitud() : 0);
+                row.createCell(15).setCellValue(p.getLongitud() != null ? p.getLongitud() : 0);
+                row.createCell(16).setCellValue(p.getAreaTerreno() != null ? p.getAreaTerreno() : 0);
+                row.createCell(17).setCellValue(p.getFrentes() != null ? p.getFrentes() : 0);
+                row.createCell(18).setCellValue(p.getNorte() != null ? p.getNorte() : 0);
+                row.createCell(19).setCellValue(p.getSur() != null ? p.getSur() : 0);
+                row.createCell(20).setCellValue(p.getEste() != null ? p.getEste() : 0);
+                row.createCell(21).setCellValue(p.getOeste() != null ? p.getOeste() : 0);
+                row.createCell(22).setCellValue(p.getAreaConstruccion() != null ? p.getAreaConstruccion() : 0);
+                row.createCell(23).setCellValue(p.getNroPisos() != null ? p.getNroPisos() : 0);
+            }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            wb.write(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new BadRequestException("Error al exportar Excel: " + e.getMessage());
+        }
     }
 
     @Override
@@ -152,6 +229,22 @@ public class PredioServiceImpl implements PredioService {
         predio.setPropietario(dto.getPropietario());
         predio.setDireccion(dto.getDireccion());
         predio.setTelefono(dto.getTelefono());
+        predio.setReferencia(dto.getReferencia());
+        predio.setAreaTerreno(dto.getAreaTerreno());
+        predio.setFrentes(dto.getFrentes());
+        predio.setNorte(dto.getNorte());
+        predio.setSur(dto.getSur());
+        predio.setEste(dto.getEste());
+        predio.setOeste(dto.getOeste());
+        predio.setTelefonoPropietario(dto.getTelefonoPropietario());
+        predio.setAreaConstruccion(dto.getAreaConstruccion());
+        predio.setNroPisos(dto.getNroPisos());
+        predio.setUso(dto.getUso());
+        predio.setNroPredial(dto.getNroPredial());
+        predio.setCedulaCatastral(dto.getCedulaCatastral());
+        predio.setServiciosBasicos(dto.getServiciosBasicos());
+        predio.setCodPredio(dto.getCodPredio());
+        predio.setEstado(dto.getEstado());
         predio.setObservaciones(dto.getObservaciones());
         predio.setActivo(true);
 
@@ -173,6 +266,22 @@ public class PredioServiceImpl implements PredioService {
                 .propietario(predio.getPropietario())
                 .direccion(predio.getDireccion())
                 .telefono(predio.getTelefono())
+                .referencia(predio.getReferencia())
+                .areaTerreno(predio.getAreaTerreno())
+                .frentes(predio.getFrentes())
+                .norte(predio.getNorte())
+                .sur(predio.getSur())
+                .este(predio.getEste())
+                .oeste(predio.getOeste())
+                .telefonoPropietario(predio.getTelefonoPropietario())
+                .areaConstruccion(predio.getAreaConstruccion())
+                .nroPisos(predio.getNroPisos())
+                .uso(predio.getUso())
+                .nroPredial(predio.getNroPredial())
+                .cedulaCatastral(predio.getCedulaCatastral())
+                .serviciosBasicos(predio.getServiciosBasicos())
+                .codPredio(predio.getCodPredio())
+                .estado(predio.getEstado())
                 .observaciones(predio.getObservaciones())
                 .activo(predio.getActivo())
                 .fechaCreacion(predio.getFechaCreacion())
@@ -218,14 +327,64 @@ public class PredioServiceImpl implements PredioService {
                             .propietario(propietario)
                             .direccion(direccion)
                             .telefono(getCellStringValue(row.getCell(4)))
-                            .observaciones(getCellStringValue(row.getCell(7)))
+                            .referencia(getCellStringValue(row.getCell(5)))
+                            .telefonoPropietario(getCellStringValue(row.getCell(6)))
+                            .nroPredial(getCellStringValue(row.getCell(7)))
+                            .cedulaCatastral(getCellStringValue(row.getCell(8)))
+                            .codPredio(getCellStringValue(row.getCell(9)))
+                            .uso(getCellStringValue(row.getCell(10)))
+                            .serviciosBasicos(getCellStringValue(row.getCell(11)))
+                            .estado(getCellStringValue(row.getCell(12)))
+                            .observaciones(getCellStringValue(row.getCell(13)))
                             .build();
 
-                    String latStr = getCellStringValue(row.getCell(5));
-                    String lonStr = getCellStringValue(row.getCell(6));
+                    String latStr = getCellStringValue(row.getCell(14));
+                    String lonStr = getCellStringValue(row.getCell(15));
                     if (latStr != null && lonStr != null) {
-                        dto.setLatitud(Double.parseDouble(latStr));
-                        dto.setLongitud(Double.parseDouble(lonStr));
+                        try {
+                            dto.setLatitud(Double.parseDouble(latStr));
+                            dto.setLongitud(Double.parseDouble(lonStr));
+                        } catch (NumberFormatException ignored) {}
+                    }
+
+                    String areaTerrenoStr = getCellStringValue(row.getCell(16));
+                    if (areaTerrenoStr != null) {
+                        try { dto.setAreaTerreno(Double.parseDouble(areaTerrenoStr)); } catch (NumberFormatException ignored) {}
+                    }
+
+                    String frentesStr = getCellStringValue(row.getCell(17));
+                    if (frentesStr != null) {
+                        try { dto.setFrentes(Double.parseDouble(frentesStr)); } catch (NumberFormatException ignored) {}
+                    }
+
+                    String norteStr = getCellStringValue(row.getCell(18));
+                    if (norteStr != null) {
+                        try { dto.setNorte(Double.parseDouble(norteStr)); } catch (NumberFormatException ignored) {}
+                    }
+
+                    String surStr = getCellStringValue(row.getCell(19));
+                    if (surStr != null) {
+                        try { dto.setSur(Double.parseDouble(surStr)); } catch (NumberFormatException ignored) {}
+                    }
+
+                    String esteStr = getCellStringValue(row.getCell(20));
+                    if (esteStr != null) {
+                        try { dto.setEste(Double.parseDouble(esteStr)); } catch (NumberFormatException ignored) {}
+                    }
+
+                    String oesteStr = getCellStringValue(row.getCell(21));
+                    if (oesteStr != null) {
+                        try { dto.setOeste(Double.parseDouble(oesteStr)); } catch (NumberFormatException ignored) {}
+                    }
+
+                    String areaConstrStr = getCellStringValue(row.getCell(22));
+                    if (areaConstrStr != null) {
+                        try { dto.setAreaConstruccion(Double.parseDouble(areaConstrStr)); } catch (NumberFormatException ignored) {}
+                    }
+
+                    String nroPisosStr = getCellStringValue(row.getCell(23));
+                    if (nroPisosStr != null) {
+                        try { dto.setNroPisos(Integer.parseInt(nroPisosStr)); } catch (NumberFormatException ignored) {}
                     }
 
                     crear(dto);
@@ -245,11 +404,23 @@ public class PredioServiceImpl implements PredioService {
             XSSFWorkbook wb = new XSSFWorkbook();
             Sheet sheet = wb.createSheet("Predios");
 
-            String[] headers = {"claveCatastral", "propietario", "direccion", "claveManzana",
-                    "telefono", "latitud", "longitud", "observaciones"};
+            String[] headers = {
+                "claveCatastral", "propietario", "direccion", "claveManzana",
+                "telefono", "referencia", "telefonoPropietario", "nroPredial",
+                "cedulaCatastral", "codPredio", "uso", "serviciosBasicos",
+                "estado", "observaciones", "latitud", "longitud",
+                "areaTerreno", "frentes", "norte", "sur", "este", "oeste",
+                "areaConstruccion", "nroPisos"
+            };
             Row headerRow = sheet.createRow(0);
+            CellStyle headerStyle = wb.createCellStyle();
+            Font headerFont = wb.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
             for (int i = 0; i < headers.length; i++) {
-                headerRow.createCell(i).setCellValue(headers[i]);
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
             }
 
             Row exampleRow = sheet.createRow(1);
@@ -258,9 +429,25 @@ public class PredioServiceImpl implements PredioService {
             exampleRow.createCell(2).setCellValue("Av. Principal 123");
             exampleRow.createCell(3).setCellValue("MZ-001");
             exampleRow.createCell(4).setCellValue("555-0101");
-            exampleRow.createCell(5).setCellValue(-17.7833);
-            exampleRow.createCell(6).setCellValue(-63.1821);
-            exampleRow.createCell(7).setCellValue("");
+            exampleRow.createCell(5).setCellValue("Frente a la iglesia");
+            exampleRow.createCell(6).setCellValue("099-123-4567");
+            exampleRow.createCell(7).setCellValue("NP-001");
+            exampleRow.createCell(8).setCellValue("CC-001");
+            exampleRow.createCell(9).setCellValue("P-001");
+            exampleRow.createCell(10).setCellValue("Residencial");
+            exampleRow.createCell(11).setCellValue("Agua, Luz, Gas");
+            exampleRow.createCell(12).setCellValue("POSITIVO");
+            exampleRow.createCell(13).setCellValue("Observación de ejemplo");
+            exampleRow.createCell(14).setCellValue(-0.1807);
+            exampleRow.createCell(15).setCellValue(-78.4678);
+            exampleRow.createCell(16).setCellValue(120.5);
+            exampleRow.createCell(17).setCellValue(10.0);
+            exampleRow.createCell(18).setCellValue(5.0);
+            exampleRow.createCell(19).setCellValue(5.0);
+            exampleRow.createCell(20).setCellValue(8.0);
+            exampleRow.createCell(21).setCellValue(8.0);
+            exampleRow.createCell(22).setCellValue(95.0);
+            exampleRow.createCell(23).setCellValue(2);
 
             for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);

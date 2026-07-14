@@ -50,9 +50,25 @@
         <div class="form-grid">
           <div class="form-field"><label>Manzana *</label><select class="form-input" [(ngModel)]="formData.idManzana"><option value="">Seleccione</option><option *ngFor="let m of manzanas()" [value]="m.idManzana">{{ m.nombre }}</option></select></div>
           <div class="form-field"><label>Clave Catastral *</label><input class="form-input" [(ngModel)]="formData.claveCatastral"></div>
-          <div class="form-field"><label>Propietario *</label><input class="form-input" [(ngModel)]="formData.propietario"></div>
+          <div class="form-field"><label>Cod Predio</label><input class="form-input" [(ngModel)]="formData.codPredio"></div>
+          <div class="form-field"><label>Nro Predial</label><input class="form-input" [(ngModel)]="formData.nroPredial"></div>
+          <div class="form-field"><label>Cedula Catastral</label><input class="form-input" [(ngModel)]="formData.cedulaCatastral"></div>
+          <div class="form-field"><label>Propietario</label><input class="form-input" [(ngModel)]="formData.propietario"></div>
+          <div class="form-field"><label>Teléfono Propietario</label><input class="form-input" [(ngModel)]="formData.telefonoPropietario"></div>
           <div class="form-field"><label>Teléfono</label><input class="form-input" [(ngModel)]="formData.telefono"></div>
           <div class="form-field full-width"><label>Dirección *</label><input class="form-input" [(ngModel)]="formData.direccion"></div>
+          <div class="form-field full-width"><label>Referencia</label><input class="form-input" [(ngModel)]="formData.referencia"></div>
+          <div class="form-field"><label>Uso</label><input class="form-input" [(ngModel)]="formData.uso"></div>
+          <div class="form-field"><label>Estado</label><select class="form-input" [(ngModel)]="formData.estado"><option value="">Seleccione</option><option value="POSITIVO">Positivo</option><option value="NEGATIVO">Negativo</option><option value="INDECISO">Indeciso</option></select></div>
+          <div class="form-field"><label>Servicios Básicos</label><input class="form-input" [(ngModel)]="formData.serviciosBasicos"></div>
+          <div class="form-field"><label>Area Terreno (m²)</label><input class="form-input" type="number" [(ngModel)]="formData.areaTerreno" step="0.01"></div>
+          <div class="form-field"><label>Frentes (m)</label><input class="form-input" type="number" [(ngModel)]="formData.frentes" step="0.01"></div>
+          <div class="form-field"><label>Nro Pisos</label><input class="form-input" type="number" [(ngModel)]="formData.nroPisos"></div>
+          <div class="form-field"><label>Area Construida (m²)</label><input class="form-input" type="number" [(ngModel)]="formData.areaConstruccion" step="0.01"></div>
+          <div class="form-field"><label>Norte (m)</label><input class="form-input" type="number" [(ngModel)]="formData.norte" step="0.01"></div>
+          <div class="form-field"><label>Sur (m)</label><input class="form-input" type="number" [(ngModel)]="formData.sur" step="0.01"></div>
+          <div class="form-field"><label>Este (m)</label><input class="form-input" type="number" [(ngModel)]="formData.este" step="0.01"></div>
+          <div class="form-field"><label>Oeste (m)</label><input class="form-input" type="number" [(ngModel)]="formData.oeste" step="0.01"></div>
           <div class="form-field"><label>Latitud</label><input class="form-input" type="number" [(ngModel)]="formData.latitud" step="0.00000001"></div>
           <div class="form-field"><label>Longitud</label><input class="form-input" type="number" [(ngModel)]="formData.longitud" step="0.00000001"></div>
           <div class="form-field full-width">
@@ -100,11 +116,11 @@
   </div>
 
   <!-- Mapa Selector -->
-  <app-mapa-selector
-    *ngIf="showMapaSelector()"
-    mode="point"
-    [initialPoint]="initialPoint"
-    (confirmed)="onMapaSelectorConfirm($event)"
-    (cancelled)="onMapaSelectorCancel()">
-  </app-mapa-selector>
 </div>
+<app-mapa-selector
+  *ngIf="showMapaSelector()"
+  mode="point"
+  [initialPoint]="initialPoint"
+  (confirmed)="onMapaSelectorConfirm($event)"
+  (cancelled)="onMapaSelectorCancel()">
+</app-mapa-selector>

@@ -31,7 +31,7 @@ public class Predio {
     @Column(nullable = false, unique = true, length = 30)
     private String claveCatastral;
 
-    @Column(nullable = false, length = 150)
+    @Column(length = 150)
     private String propietario;
 
     @Column(nullable = false, length = 200)
@@ -42,6 +42,46 @@ public class Predio {
 
     @Column(columnDefinition = "geometry(Point, 4326)")
     private Geometry georeferencia;
+
+    @Column(length = 200)
+    private String referencia;
+
+    private Double areaTerreno;
+
+    private Double frentes;
+
+    private Double norte;
+
+    private Double sur;
+
+    private Double este;
+
+    private Double oeste;
+
+    @Column(length = 20)
+    private String telefonoPropietario;
+
+    private Double areaConstruccion;
+
+    private Integer nroPisos;
+
+    @Column(length = 100)
+    private String uso;
+
+    @Column(length = 50)
+    private String nroPredial;
+
+    @Column(length = 50)
+    private String cedulaCatastral;
+
+    @Column(length = 200)
+    private String serviciosBasicos;
+
+    @Column(length = 50)
+    private String codPredio;
+
+    @Column(length = 20)
+    private String estado;
 
     @Column(length = 500)
     private String observaciones;

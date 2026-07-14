@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, AfterViewInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, Output, AfterViewInit, ViewChild, ElementRef, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
 
@@ -6,61 +6,51 @@ import * as L from 'leaflet';
   selector: 'app-mapa-selector',
   standalone: true,
   imports: [CommonModule],
+  encapsulation: ViewEncapsulation.None,
   template: `
-    <div class="selector-overlay">
-      <div class="selector-header">
-        <div class="selector-title">
+    <div class="ms-overlay" role="dialog" aria-modal="true">
+      <div class="ms-header">
+        <div class="ms-title">
           <i class="bi" [ngClass]="mode === 'polygon' ? 'bi-pentagon' : 'bi-geo-alt'"></i>
           <span>{{ mode === 'polygon' ? 'Dibuje el polígono en el mapa' : 'Seleccione la ubicación en el mapa' }}</span>
         </div>
-        <div class="selector-actions">
-          <span class="selector-hint" *ngIf="mode === 'polygon'">{{ points.length < 3 ? 'Click para agregar puntos (' + points.length + ')' : 'Doble-click para finalizar (' + points.length + ' puntos)' }}</span>
-          <span class="selector-hint" *ngIf="mode === 'point'">{{ selectedPoint ? 'Punto seleccionado' : 'Click en el mapa para ubicar el punto' }}</span>
-          <button class="btn-selector-cancel" (click)="cancelar()"><i class="bi bi-x-lg"></i> Cancelar</button>
-          <button class="btn-selector-undo" *ngIf="mode === 'polygon' && points.length > 0" (click)="deshacer()"><i class="bi bi-arrow-counterclockwise"></i> Deshacer</button>
-          <button class="btn-selector-clear" *ngIf="mode === 'polygon' && points.length > 0" (click)="limpiar()"><i class="bi bi-trash"></i> Limpiar</button>
-          <button class="btn-selector-confirm" [disabled]="!isValid()" (click)="confirmar()"><i class="bi bi-check-lg"></i> Confirmar</button>
+        <div class="ms-actions">
+          <span class="ms-hint" *ngIf="mode === 'polygon'">{{ points.length < 3 ? 'Click para agregar puntos (' + points.length + ')' : 'Doble-click para finalizar (' + points.length + ' puntos)' }}</span>
+          <span class="ms-hint" *ngIf="mode === 'point'">{{ selectedPoint ? 'Punto seleccionado' : 'Click en el mapa para ubicar el punto' }}</span>
+          <button class="ms-btn" (click)="cancelar()"><i class="bi bi-x-lg"></i> Cancelar</button>
+          <button class="ms-btn" *ngIf="mode === 'polygon' && points.length > 0" (click)="deshacer()"><i class="bi bi-arrow-counterclockwise"></i> Deshacer</button>
+          <button class="ms-btn ms-btn-danger" *ngIf="mode === 'polygon' && points.length > 0" (click)="limpiar()"><i class="bi bi-trash"></i> Limpiar</button>
+          <button class="ms-btn ms-btn-confirm" [disabled]="!isValid()" (click)="confirmar()"><i class="bi bi-check-lg"></i> Confirmar</button>
         </div>
       </div>
-      <div id="selector-map" class="selector-map"></div>
+      <div #mapContainer class="ms-map"></div>
     </div>
   `,
   styles: [`
-    .selector-overlay { position: fixed; inset: 0; z-index: 3000; background: var(--bg-surface, #fff); display: flex; flex-direction: column; animation: fadeIn 0.2s ease-out; }
-    .selector-header {
-      display: flex; justify-content: space-between; align-items: center; padding: 12px 20px;
-      background: linear-gradient(135deg, var(--primary-700, #2b5a2b), var(--primary-900, #1a3a1a));
-      color: #fff; flex-shrink: 0; flex-wrap: wrap; gap: 8px;
+    .ms-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 3000; background: #fff; display: flex; flex-direction: column; overflow: hidden; }
+    .ms-header {
+      display: flex; justify-content: space-between; align-items: center; padding: 10px 16px;
+      background: linear-gradient(135deg, #2b5a2b, #1a3a1a); color: #fff; flex-shrink: 0;
+      flex-wrap: wrap; gap: 8px; min-height: 52px;
     }
-    .selector-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
-    .selector-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .selector-hint { font-size: 12px; opacity: 0.85; margin-right: 8px; }
-    .btn-selector-cancel {
-      padding: 6px 14px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px;
-      background: transparent; color: #fff; font-size: 13px; cursor: pointer;
+    .ms-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+    .ms-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .ms-hint { font-size: 12px; opacity: 0.85; margin-right: 4px; }
+    .ms-btn {
+      padding: 5px 12px; border: 1px solid rgba(255,255,255,0.3); border-radius: 5px;
+      background: transparent; color: #fff; font-size: 12px; cursor: pointer; white-space: nowrap;
     }
-    .btn-selector-cancel:hover { background: rgba(255,255,255,0.1); }
-    .btn-selector-undo {
-      padding: 6px 14px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px;
-      background: transparent; color: #fff; font-size: 13px; cursor: pointer;
-    }
-    .btn-selector-undo:hover { background: rgba(255,255,255,0.1); }
-    .btn-selector-clear {
-      padding: 6px 14px; border: 1px solid rgba(255,100,100,0.5); border-radius: 6px;
-      background: transparent; color: #ffaaaa; font-size: 13px; cursor: pointer;
-    }
-    .btn-selector-clear:hover { background: rgba(255,100,100,0.15); }
-    .btn-selector-confirm {
-      padding: 6px 16px; border: none; border-radius: 6px;
-      background: var(--success-500, #22c55e); color: #fff; font-size: 13px; font-weight: 500; cursor: pointer;
-    }
-    .btn-selector-confirm:hover:not(:disabled) { background: var(--success-600, #16a34a); }
-    .btn-selector-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
-    .selector-map { flex: 1; width: 100%; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .ms-btn:hover { background: rgba(255,255,255,0.1); }
+    .ms-btn-danger { border-color: rgba(255,100,100,0.5); color: #ffaaaa; }
+    .ms-btn-danger:hover { background: rgba(255,100,100,0.15); }
+    .ms-btn-confirm { background: #22c55e; border-color: #22c55e; font-weight: 500; }
+    .ms-btn-confirm:hover:not(:disabled) { background: #16a34a; }
+    .ms-btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ms-map { flex: 1; min-height: 0; width: 100%; height: 100%; display: block; background: #f5f6f7; }
   `]
 })
 export class MapaSelectorComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('mapContainer') mapContainer!: ElementRef<HTMLDivElement>;
   @Input() mode: 'polygon' | 'point' = 'polygon';
   @Input() center: [number, number] = [-0.1807, -78.4678];
   @Input() zoom = 15;
@@ -72,43 +62,86 @@ export class MapaSelectorComponent implements AfterViewInit, OnDestroy {
   private map: L.Map | null = null;
   points: [number, number][] = [];
   selectedPoint: [number, number] | null = null;
-  private tempMarkers: L.Marker[] = [];
+  private tempMarkers: L.CircleMarker[] = [];
   private tempLine: L.Polyline | null = null;
   private tempPolygon: L.Polygon | null = null;
   private pointMarker: L.Marker | null = null;
   private drawingTempLine: L.Polyline | null = null;
+  private resizeHandler: (() => void) | null = null;
+  private initialized = false;
+  private initAttempts = 0;
 
   ngAfterViewInit() {
-    setTimeout(() => this.initMap(), 100);
+    this.resizeHandler = () => {
+      if (this.map) {
+        this.map.invalidateSize({ pan: false });
+      }
+    };
+    window.addEventListener('resize', this.resizeHandler);
+    requestAnimationFrame(() => this.initMap());
   }
 
   ngOnDestroy() {
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+    }
     if (this.map) { this.map.remove(); this.map = null; }
   }
 
   private initMap() {
-    const mapEl = document.getElementById('selector-map');
-    if (!mapEl) return;
+    if (this.initialized) return;
 
-    this.map = L.map('selector-map').setView(this.center, this.zoom);
+    const el = this.mapContainer?.nativeElement;
+    if (!el) {
+      if (this.initAttempts < 12) {
+        this.initAttempts += 1;
+        requestAnimationFrame(() => this.initMap());
+      }
+      return;
+    }
+
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      if (this.initAttempts < 12) {
+        this.initAttempts += 1;
+        setTimeout(() => this.initMap(), 120);
+      }
+      return;
+    }
+
+    this.initialized = true;
+    this.initAttempts = 0;
+
+    this.map = L.map(el, { zoomControl: true, zoomSnap: 0.25 }).setView(this.center, this.zoom);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OSM', maxZoom: 19
     }).addTo(this.map);
+
+    this.map.whenReady(() => {
+      setTimeout(() => {
+        if (this.map) {
+          this.map.invalidateSize({ pan: false });
+          if (this.mode === 'point' && this.initialPoint) {
+            this.selectedPoint = [...this.initialPoint];
+            this.renderPoint();
+          }
+        }
+      }, 150);
+      setTimeout(() => {
+        if (this.map) {
+          this.map.invalidateSize({ pan: false });
+        }
+      }, 400);
+    });
 
     if (this.mode === 'polygon' && this.initialPolygon.length > 0) {
       this.points = [...this.initialPolygon];
       this.renderPolygon();
       setTimeout(() => {
         if (this.map && this.points.length > 0) {
-          const bounds = L.latLngBounds(this.points);
-          this.map.fitBounds(bounds, { padding: [50, 50] });
+          this.map.fitBounds(L.latLngBounds(this.points), { padding: [50, 50] });
         }
-      }, 200);
-    }
-
-    if (this.mode === 'point' && this.initialPoint) {
-      this.selectedPoint = [...this.initialPoint];
-      this.renderPoint();
+      }, 150);
     }
 
     this.map.on('click', (e: L.LeafletMouseEvent) => this.onMapClick(e));
@@ -161,8 +194,8 @@ export class MapaSelectorComponent implements AfterViewInit, OnDestroy {
       const marker = L.circleMarker(p, {
         radius: 6, fillColor: '#3d6b3d', color: '#fff', weight: 2, fillOpacity: 0.9
       }).addTo(this.map!);
-      marker.bindTooltip(`${i + 1}`, { permanent: true, direction: 'top', className: 'point-tooltip' });
-      this.tempMarkers.push(marker as any);
+      marker.bindTooltip(`${i + 1}`, { permanent: true, direction: 'top' });
+      this.tempMarkers.push(marker);
     });
 
     if (this.points.length >= 3) {
@@ -188,7 +221,7 @@ export class MapaSelectorComponent implements AfterViewInit, OnDestroy {
 
     this.pointMarker = L.marker(this.selectedPoint, {
       icon: L.divIcon({
-        className: 'custom-marker',
+        className: '',
         html: `<div style="background:#3d6b3d;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>`,
         iconSize: [16, 16], iconAnchor: [8, 8]
       })
