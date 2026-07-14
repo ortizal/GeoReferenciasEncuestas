@@ -1,6 +1,8 @@
 package com.georeferencias.controller;
 
 import com.georeferencias.dto.ApiResponse;
+import com.georeferencias.dto.ImportPreviewDTO;
+import com.georeferencias.dto.ImportResultDTO;
 import com.georeferencias.dto.ManzanaDTO;
 import com.georeferencias.service.ManzanaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -112,13 +114,22 @@ public class ManzanaController {
                 .body(datos);
     }
 
+    @PostMapping("/importar/preview")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Operation(summary = "Vista previa del archivo Excel antes de importar")
+    public ResponseEntity<ApiResponse<ImportPreviewDTO>> previewExcel(@RequestParam("file") MultipartFile file) {
+        ImportPreviewDTO preview = manzanaService.previewExcel(file);
+        return ResponseEntity.ok(ApiResponse.exito(preview, "Vista previa generada"));
+    }
+
     @PostMapping("/importar/excel")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(summary = "Importar manzanas desde Excel")
-    public ResponseEntity<ApiResponse<String>> importarExcel(@RequestParam("file") MultipartFile file) {
-        int importadas = manzanaService.importarExcel(file);
-        return ResponseEntity.ok(ApiResponse.exito(
-                importadas + " manzanas importadas", "Importación completada"));
+    public ResponseEntity<ApiResponse<ImportResultDTO>> importarExcel(@RequestParam("file") MultipartFile file) {
+        ImportResultDTO resultado = manzanaService.importarExcel(file);
+        String mensaje = String.format("%d éxitos, %d errores de %d filas",
+                resultado.getSuccessCount(), resultado.getErrorCount(), resultado.getTotalRows());
+        return ResponseEntity.ok(ApiResponse.exito(resultado, mensaje));
     }
 
     @GetMapping("/plantilla/excel")

@@ -31,6 +31,11 @@ export class ManzanasComponent implements OnInit {
   showMapaSelector = signal(false);
   initialPolygon: [number, number][] = [];
 
+  previewData: any = null;
+  previewLoading = signal(false);
+  previewError = signal('');
+  importResult: any = null;
+
   constructor(private manzanaService: ManzanaService) {}
   ngOnInit() { this.buscar(); }
 
@@ -78,10 +83,61 @@ export class ManzanasComponent implements OnInit {
   }
   eliminar(m: Manzana) { if (confirm(`¿Eliminar manzana ${m.nombre}?`)) this.manzanaService.eliminar(m.idManzana!).subscribe({ next: () => this.buscar() }); }
 
-  abrirImportar() { this.archivoSeleccionado.set(false); this.archivoNombre.set(''); this.resultadoImportacion.set(''); this.showImportar.set(true); }
-  cerrarImportar() { this.showImportar.set(false); }
-  onFileSelected(event: Event) { const input = event.target as HTMLInputElement; if (input.files && input.files.length > 0) { this.archivoFile = input.files[0]; this.archivoNombre.set(input.files[0].name); this.archivoSeleccionado.set(true); } }
-  importarExcel() { if (!this.archivoFile) return; this.importando.set(true); this.manzanaService.importarExcel(this.archivoFile).subscribe({ next: (r) => { this.importando.set(false); this.resultadoImportacion.set(r.mensaje || 'Importación completada'); this.archivoSeleccionado.set(false); this.buscar(); }, error: () => { this.importando.set(false); this.resultadoImportacion.set('Error al importar'); } }); }
+  abrirImportar() { this.archivoSeleccionado.set(false); this.archivoNombre.set(''); this.resultadoImportacion.set(''); this.previewData = null; this.importResult = null; this.previewError.set(''); this.showImportar.set(true); }
+  cerrarImportar() { this.showImportar.set(false); this.previewData = null; this.importResult = null; }
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.archivoFile = input.files[0];
+      this.archivoNombre.set(input.files[0].name);
+      this.archivoSeleccionado.set(true);
+      this.previewData = null;
+      this.importResult = null;
+      this.previewError.set('');
+      this.cargarPreview();
+    }
+  }
+
+  cargarPreview() {
+    if (!this.archivoFile) return;
+    this.previewLoading.set(true);
+    this.previewError.set('');
+    this.manzanaService.previewExcel(this.archivoFile).subscribe({
+      next: (r) => {
+        this.previewLoading.set(false);
+        if (r.exitoso) {
+          this.previewData = r.datos;
+        } else {
+          this.previewError.set(r.mensaje || 'Error al leer el archivo');
+        }
+      },
+      error: () => {
+        this.previewLoading.set(false);
+        this.previewError.set('Error al conectar con el servidor');
+      }
+    });
+  }
+
+  importarExcel() {
+    if (!this.archivoFile) return;
+    this.importando.set(true);
+    this.manzanaService.importarExcel(this.archivoFile).subscribe({
+      next: (r) => {
+        this.importando.set(false);
+        if (r.exitoso) {
+          this.importResult = r.datos;
+          this.resultadoImportacion.set(r.mensaje || 'Importación completada');
+          this.buscar();
+        } else {
+          this.previewError.set(r.mensaje || 'Error al importar');
+        }
+      },
+      error: () => {
+        this.importando.set(false);
+        this.previewError.set('Error al importar');
+      }
+    });
+  }
 
   descargarPlantilla() { this.manzanaService.descargarPlantilla().subscribe({ next: (blob) => { const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'plantilla_manzanas.xlsx'; a.click(); window.URL.revokeObjectURL(url); }, error: () => alert('Error al descargar la plantilla. Verifique que el backend esté corriendo.') }); }
 

@@ -91,7 +91,7 @@
 
   <!-- Modal Importar -->
   <div class="modal-overlay" *ngIf="showImportar()" (click)="cerrarImportar()">
-    <div class="modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
       <div class="modal-header"><h4>Importar Manzanas</h4><button class="modal-close" (click)="cerrarImportar()"><i class="bi bi-x"></i></button></div>
       <div class="modal-body">
         <p class="import-desc">Seleccione un archivo Excel (.xlsx) con las manzanas a importar.</p>
@@ -100,18 +100,85 @@
           <i class="bi" [ngClass]="archivoSeleccionado() ? 'bi-file-earmark-check' : 'bi-cloud-arrow-up'"></i>
           <span>{{ archivoSeleccionado() ? archivoNombre() : 'Click para seleccionar archivo Excel' }}</span>
         </div>
-        <div class="import-progress" *ngIf="importando()">
+
+        <div class="import-progress" *ngIf="previewLoading()">
           <div class="progress-bar"><div class="progress-fill"></div></div>
-          <span>Importando...</span>
+          <span>Leyendo archivo...</span>
         </div>
-        <div class="import-result" *ngIf="resultadoImportacion()">
-          <i class="bi bi-check-circle-fill text-success"></i> {{ resultadoImportacion() }}
+
+        <div class="import-result error" *ngIf="previewError()">
+          <i class="bi bi-exclamation-circle-fill text-danger"></i> {{ previewError() }}
+        </div>
+
+        <div class="preview-section" *ngIf="previewData && !importResult">
+          <div class="preview-stats">
+            <span class="stat"><strong>{{ previewData.totalRows }}</strong> filas encontradas</span>
+            <span class="stat success"><strong>{{ previewData.validRows }}</strong> validas</span>
+            <span class="stat warning" *ngIf="previewData.duplicateRows > 0"><strong>{{ previewData.duplicateRows }}</strong> duplicadas</span>
+          </div>
+          <div class="preview-table-wrap">
+            <table class="table-premium table-preview">
+              <thead>
+                <tr>
+                  <th>Fila</th>
+                  <th>Clave</th>
+                  <th>Nombre</th>
+                  <th>Sector</th>
+                  <th>Barrio</th>
+                  <th>Polígono</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of previewData.rows" [class.row-error]="!row.valid" [class.row-duplicate]="row.duplicate">
+                  <td>{{ row.rowNum }}</td>
+                  <td><code class="cell-code">{{ row.claveCatastral }}</code></td>
+                  <td>{{ row.nombre }}</td>
+                  <td>{{ row.sector || '—' }}</td>
+                  <td>{{ row.barrio || '—' }}</td>
+                  <td>{{ row.poligonoGeoJSON ? 'Si' : '—' }}</td>
+                  <td>
+                    <span *ngIf="row.valid" class="badge-premium badge-success">Valido</span>
+                    <span *ngIf="row.duplicate" class="badge-premium badge-warning" [title]="row.error">Duplicado</span>
+                    <span *ngIf="!row.valid && !row.duplicate" class="badge-premium badge-danger" [title]="row.error">Error</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="import-result" *ngIf="importResult">
+          <div class="result-summary">
+            <div class="result-stat" *ngIf="importResult.successCount > 0">
+              <i class="bi bi-check-circle-fill text-success"></i> {{ importResult.successCount }} importadas
+            </div>
+            <div class="result-stat" *ngIf="importResult.errorCount > 0">
+              <i class="bi bi-x-circle-fill text-danger"></i> {{ importResult.errorCount }} con errores
+            </div>
+          </div>
+          <div class="preview-table-wrap" *ngIf="importResult.results?.length > 0">
+            <table class="table-premium table-preview">
+              <thead><tr><th>Fila</th><th>Clave</th><th>Estado</th><th>Mensaje</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let r of importResult.results" [class.row-error]="!r.success">
+                  <td>{{ r.rowNum }}</td>
+                  <td><code class="cell-code">{{ r.claveCatastral }}</code></td>
+                  <td>
+                    <span *ngIf="r.success" class="badge-premium badge-success">OK</span>
+                    <span *ngIf="!r.success" class="badge-premium badge-danger">Error</span>
+                  </td>
+                  <td>{{ r.error || 'Importado correctamente' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-cancel" (click)="cerrarImportar()">Cerrar</button>
-            <button class="btn-save" (click)="importarExcel()" [disabled]="!archivoSeleccionado() || importando()">
-          {{ importando() ? 'Importando...' : 'Importar' }}
+        <button class="btn-cancel" (click)="cerrarImportar()">{{ importResult ? 'Cerrar' : 'Cancelar' }}</button>
+        <button class="btn-save" *ngIf="!importResult" (click)="importarExcel()" [disabled]="!archivoSeleccionado() || importando() || !previewData || previewData.validRows === 0">
+          {{ importando() ? 'Importando...' : 'Importar ' + (previewData ? previewData.validRows : 0) + ' manzanas' }}
         </button>
       </div>
     </div>

@@ -8,6 +8,7 @@ com/georeferencias/service/DashboardService.class
 com/georeferencias/entity/Usuario.class
 com/georeferencias/security/JwtUserDetails.class
 com/georeferencias/dto/DashboardDTO$DashboardDTOBuilder.class
+com/georeferencias/service/impl/ManzanaServiceImpl$1.class
 com/georeferencias/service/ManzanaService.class
 com/georeferencias/service/impl/DashboardServiceImpl.class
 com/georeferencias/dto/ManzanaDTO.class
@@ -35,7 +36,6 @@ com/georeferencias/entity/Menu$MenuBuilder.class
 com/georeferencias/repository/PredioRepository.class
 com/georeferencias/dto/ApiResponse.class
 com/georeferencias/repository/AuditoriaRepository.class
-com/georeferencias/service/impl/ManzanaServiceImpl.class
 com/georeferencias/security/JwtUserDetailsService.class
 com/georeferencias/repository/UsuarioRepository.class
 com/georeferencias/dto/PredioDTO.class
@@ -65,6 +65,7 @@ com/georeferencias/dto/CambioContrasenaRequest$CambioContrasenaRequestBuilder.cl
 com/georeferencias/dto/LoginRequest$LoginRequestBuilder.class
 com/georeferencias/entity/Predio.class
 com/georeferencias/entity/Permiso.class
+com/georeferencias/service/impl/PredioServiceImpl$1.class
 com/georeferencias/dto/DashboardDTO.class
 com/georeferencias/security/JwtAuthenticationFilter.class
 com/georeferencias/controller/ManzanaController.class

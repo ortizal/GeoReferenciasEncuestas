@@ -2,6 +2,8 @@ package com.georeferencias.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.georeferencias.dto.ImportPreviewDTO;
+import com.georeferencias.dto.ImportResultDTO;
 import com.georeferencias.dto.ManzanaDTO;
 import com.georeferencias.entity.Manzana;
 import com.georeferencias.exception.BadRequestException;
@@ -369,11 +371,13 @@ public class ManzanaServiceImpl implements ManzanaService {
     }
 
     @Override
-    @Transactional
-    public int importarExcel(MultipartFile file) {
+    public ImportPreviewDTO previewExcel(MultipartFile file) {
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
-            int importadas = 0;
+            List<ImportPreviewDTO.ImportRowDTO> rows = new ArrayList<>();
+            List<String> errors = new ArrayList<>();
+            int validCount = 0;
+            int duplicateCount = 0;
 
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
@@ -382,8 +386,90 @@ public class ManzanaServiceImpl implements ManzanaService {
                 String clave = getCellStringValue(row.getCell(0));
                 String nombre = getCellStringValue(row.getCell(1));
 
-                if (clave == null || nombre == null) continue;
-                if (manzanaRepository.existsByClaveCatastralManzana(clave)) continue;
+                if (clave == null || clave.isBlank()) {
+                    continue;
+                }
+
+                boolean isDuplicate = manzanaRepository.existsByClaveCatastralManzana(clave);
+                if (isDuplicate) duplicateCount++;
+
+                String error = null;
+                boolean valid = true;
+                if (nombre == null || nombre.isBlank()) {
+                    error = "Nombre es obligatorio";
+                    valid = false;
+                } else if (isDuplicate) {
+                    error = "Clave catastral ya existe (se omitirá)";
+                    valid = false;
+                }
+
+                if (valid && !isDuplicate) validCount++;
+
+                String poligono = getCellStringValue(row.getCell(4));
+
+                ImportPreviewDTO.ImportRowDTO rowDTO = ImportPreviewDTO.ImportRowDTO.builder()
+                        .rowNum(i + 1)
+                        .claveCatastral(clave)
+                        .nombre(nombre != null ? nombre : "")
+                        .sector(getCellStringValue(row.getCell(2)))
+                        .barrio(getCellStringValue(row.getCell(3)))
+                        .poligonoGeoJSON(poligono)
+                        .valid(valid && !isDuplicate)
+                        .duplicate(isDuplicate)
+                        .error(error)
+                        .build();
+                rows.add(rowDTO);
+            }
+
+            return ImportPreviewDTO.builder()
+                    .totalRows(rows.size())
+                    .validRows(validCount)
+                    .duplicateRows(duplicateCount)
+                    .rows(rows)
+                    .errors(errors)
+                    .build();
+        } catch (Exception e) {
+            throw new BadRequestException("Error al leer el archivo Excel: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public ImportResultDTO importarExcel(MultipartFile file) {
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = workbook.getSheetAt(0);
+            List<ImportResultDTO.ImportRowResult> results = new ArrayList<>();
+            int successCount = 0;
+            int errorCount = 0;
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                String clave = getCellStringValue(row.getCell(0));
+                String nombre = getCellStringValue(row.getCell(1));
+
+                if (clave == null || clave.isBlank() || nombre == null || nombre.isBlank()) {
+                    errorCount++;
+                    results.add(ImportResultDTO.ImportRowResult.builder()
+                            .rowNum(i + 1)
+                            .claveCatastral(clave != null ? clave : "")
+                            .success(false)
+                            .error("Clave y nombre son obligatorios")
+                            .build());
+                    continue;
+                }
+
+                if (manzanaRepository.existsByClaveCatastralManzana(clave)) {
+                    errorCount++;
+                    results.add(ImportResultDTO.ImportRowResult.builder()
+                            .rowNum(i + 1)
+                            .claveCatastral(clave)
+                            .success(false)
+                            .error("Clave catastral ya existe")
+                            .build());
+                    continue;
+                }
 
                 ManzanaDTO dto = ManzanaDTO.builder()
                         .claveCatastralManzana(clave)
@@ -392,13 +478,36 @@ public class ManzanaServiceImpl implements ManzanaService {
                         .barrio(getCellStringValue(row.getCell(3)))
                         .build();
 
+                String poligonoStr = getCellStringValue(row.getCell(4));
+                if (poligonoStr != null && !poligonoStr.isBlank()) {
+                    dto.setPoligonoGeoJSON(poligonoStr);
+                }
+
                 try {
                     crear(dto);
-                    importadas++;
-                } catch (Exception ignored) {}
+                    successCount++;
+                    results.add(ImportResultDTO.ImportRowResult.builder()
+                            .rowNum(i + 1)
+                            .claveCatastral(clave)
+                            .success(true)
+                            .build());
+                } catch (Exception e) {
+                    errorCount++;
+                    results.add(ImportResultDTO.ImportRowResult.builder()
+                            .rowNum(i + 1)
+                            .claveCatastral(clave)
+                            .success(false)
+                            .error(e.getMessage())
+                            .build());
+                }
             }
 
-            return importadas;
+            return ImportResultDTO.builder()
+                    .totalRows(results.size())
+                    .successCount(successCount)
+                    .errorCount(errorCount)
+                    .results(results)
+                    .build();
         } catch (Exception e) {
             throw new BadRequestException("Error al procesar Excel: " + e.getMessage());
         }
@@ -410,10 +519,16 @@ public class ManzanaServiceImpl implements ManzanaService {
             XSSFWorkbook wb = new XSSFWorkbook();
             Sheet sheet = wb.createSheet("Manzanas");
 
-            String[] headers = {"claveCatastral", "nombre", "sector", "barrio"};
+            String[] headers = {"claveCatastral", "nombre", "sector", "barrio", "poligono"};
             Row headerRow = sheet.createRow(0);
+            CellStyle headerStyle = wb.createCellStyle();
+            Font headerFont = wb.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
             for (int i = 0; i < headers.length; i++) {
-                headerRow.createCell(i).setCellValue(headers[i]);
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
             }
 
             Row exampleRow = sheet.createRow(1);
@@ -421,10 +536,23 @@ public class ManzanaServiceImpl implements ManzanaService {
             exampleRow.createCell(1).setCellValue("Manzana Ejemplo");
             exampleRow.createCell(2).setCellValue("Norte");
             exampleRow.createCell(3).setCellValue("Centro");
+            exampleRow.createCell(4).setCellValue("{\"type\":\"Polygon\",\"coordinates\":[[-78.47,-0.18],[-78.46,-0.18],[-78.46,-0.17],[-78.47,-0.17],[-78.47,-0.18]]}");
+
+            Row noteRow = sheet.createRow(3);
+            Cell noteCell = noteRow.createCell(0);
+            noteCell.setCellValue("Nota: La columna poligono debe contener GeoJSON valido (tipo Polygon). Se puede dejar vacio.");
+            CellStyle noteStyle = wb.createCellStyle();
+            Font noteFont = wb.createFont();
+            noteFont.setItalic(true);
+            noteFont.setColor(IndexedColors.GREY_25_PERCENT.index);
+            noteStyle.setFont(noteFont);
+            noteCell.setCellStyle(noteStyle);
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(3, 3, 0, 4));
 
             for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);
             }
+            sheet.setColumnWidth(4, 8000);
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             wb.write(out);
