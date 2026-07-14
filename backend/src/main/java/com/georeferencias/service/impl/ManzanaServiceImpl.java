@@ -18,9 +18,11 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LinearRing;
+import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
+import org.locationtech.jts.io.WKTReader;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -190,6 +192,11 @@ public class ManzanaServiceImpl implements ManzanaService {
         String trimmed = geoJSON.trim();
 
         try {
+            if (trimmed.toUpperCase().startsWith("MULTIPOLYGON") || trimmed.toUpperCase().startsWith("POLYGON")) {
+                WKTReader wktReader = new WKTReader();
+                return wktReader.read(trimmed);
+            }
+
             if (trimmed.startsWith("{")) {
                 try {
                     GeoJsonReader reader = new GeoJsonReader();
@@ -286,25 +293,53 @@ public class ManzanaServiceImpl implements ManzanaService {
     }
 
     private Geometry transformToWgs84IfNeeded(Geometry geometry) {
-        if (geometry == null || !(geometry instanceof Polygon polygon)) {
+        if (geometry == null) {
             return geometry;
         }
 
-        Coordinate[] coordinates = polygon.getExteriorRing().getCoordinates();
-        boolean needsTransform = Arrays.stream(coordinates)
-                .anyMatch(coord -> Math.abs(coord.x) > 180 || Math.abs(coord.y) > 90);
+        if (geometry instanceof MultiPolygon multiPolygon) {
+            Coordinate[] allCoords = multiPolygon.getCoordinates();
+            boolean needsTransform = Arrays.stream(allCoords)
+                    .anyMatch(coord -> Math.abs(coord.x) > 180 || Math.abs(coord.y) > 90);
 
-        if (!needsTransform) {
-            return geometry;
+            if (!needsTransform) {
+                return geometry;
+            }
+
+            Polygon[] polygons = new Polygon[multiPolygon.getNumGeometries()];
+            for (int i = 0; i < multiPolygon.getNumGeometries(); i++) {
+                Polygon poly = (Polygon) multiPolygon.getGeometryN(i);
+                Coordinate[] coords = poly.getExteriorRing().getCoordinates();
+                Coordinate[] transformed = Arrays.stream(coords)
+                        .map(this::utm17nToWgs84)
+                        .toArray(Coordinate[]::new);
+                GeometryFactory factory = new GeometryFactory();
+                LinearRing ring = factory.createLinearRing(transformed);
+                polygons[i] = factory.createPolygon(ring);
+            }
+            GeometryFactory factory = new GeometryFactory();
+            return factory.createMultiPolygon(polygons);
         }
 
-        Coordinate[] transformed = Arrays.stream(coordinates)
-                .map(this::utm17nToWgs84)
-                .toArray(Coordinate[]::new);
+        if (geometry instanceof Polygon polygon) {
+            Coordinate[] coordinates = polygon.getExteriorRing().getCoordinates();
+            boolean needsTransform = Arrays.stream(coordinates)
+                    .anyMatch(coord -> Math.abs(coord.x) > 180 || Math.abs(coord.y) > 90);
 
-        GeometryFactory factory = new GeometryFactory();
-        LinearRing ring = factory.createLinearRing(transformed);
-        return factory.createPolygon(ring);
+            if (!needsTransform) {
+                return geometry;
+            }
+
+            Coordinate[] transformed = Arrays.stream(coordinates)
+                    .map(this::utm17nToWgs84)
+                    .toArray(Coordinate[]::new);
+
+            GeometryFactory factory = new GeometryFactory();
+            LinearRing ring = factory.createLinearRing(transformed);
+            return factory.createPolygon(ring);
+        }
+
+        return geometry;
     }
 
     private Coordinate utm17nToWgs84(Coordinate coordinate) {
@@ -379,12 +414,24 @@ public class ManzanaServiceImpl implements ManzanaService {
             int validCount = 0;
             int duplicateCount = 0;
 
+            int claveCol = findColumnIndex(sheet, "clave_catastral", "claveCatastral");
+            int nombreCol = findColumnIndex(sheet, "nombre");
+            int sectorCol = findColumnIndex(sheet, "sector");
+            int barrioCol = findColumnIndex(sheet, "barrio");
+            int poligonoCol = findColumnIndex(sheet, "poligono", "poligonoGeoJSON", "geojson");
+
+            if (claveCol < 0) claveCol = 0;
+            if (nombreCol < 0) nombreCol = 1;
+            if (sectorCol < 0) sectorCol = 2;
+            if (barrioCol < 0) barrioCol = 3;
+            if (poligonoCol < 0) poligonoCol = 4;
+
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
-                String clave = getCellStringValue(row.getCell(0));
-                String nombre = getCellStringValue(row.getCell(1));
+                String clave = getCellStringValue(row.getCell(claveCol));
+                String nombre = getCellStringValue(row.getCell(nombreCol));
 
                 if (clave == null || clave.isBlank()) {
                     continue;
@@ -395,24 +442,22 @@ public class ManzanaServiceImpl implements ManzanaService {
 
                 String error = null;
                 boolean valid = true;
-                if (nombre == null || nombre.isBlank()) {
-                    error = "Nombre es obligatorio";
-                    valid = false;
-                } else if (isDuplicate) {
+                if (isDuplicate) {
                     error = "Clave catastral ya existe (se omitirá)";
                     valid = false;
                 }
 
                 if (valid && !isDuplicate) validCount++;
 
-                String poligono = getCellStringValue(row.getCell(4));
+                String poligono = getCellStringValue(row.getCell(poligonoCol));
+                String nombreDisplay = (nombre != null && !nombre.isBlank()) ? nombre : clave;
 
                 ImportPreviewDTO.ImportRowDTO rowDTO = ImportPreviewDTO.ImportRowDTO.builder()
                         .rowNum(i + 1)
                         .claveCatastral(clave)
-                        .nombre(nombre != null ? nombre : "")
-                        .sector(getCellStringValue(row.getCell(2)))
-                        .barrio(getCellStringValue(row.getCell(3)))
+                        .nombre(nombreDisplay)
+                        .sector(getCellStringValue(row.getCell(sectorCol)))
+                        .barrio(getCellStringValue(row.getCell(barrioCol)))
                         .poligonoGeoJSON(poligono)
                         .valid(valid && !isDuplicate)
                         .duplicate(isDuplicate)
@@ -442,20 +487,32 @@ public class ManzanaServiceImpl implements ManzanaService {
             int successCount = 0;
             int errorCount = 0;
 
+            int claveCol = findColumnIndex(sheet, "clave_catastral", "claveCatastral");
+            int nombreCol = findColumnIndex(sheet, "nombre");
+            int sectorCol = findColumnIndex(sheet, "sector");
+            int barrioCol = findColumnIndex(sheet, "barrio");
+            int poligonoCol = findColumnIndex(sheet, "poligono", "poligonoGeoJSON", "geojson");
+
+            if (claveCol < 0) claveCol = 0;
+            if (nombreCol < 0) nombreCol = 1;
+            if (sectorCol < 0) sectorCol = 2;
+            if (barrioCol < 0) barrioCol = 3;
+            if (poligonoCol < 0) poligonoCol = 4;
+
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
-                String clave = getCellStringValue(row.getCell(0));
-                String nombre = getCellStringValue(row.getCell(1));
+                String clave = getCellStringValue(row.getCell(claveCol));
+                String nombre = getCellStringValue(row.getCell(nombreCol));
 
-                if (clave == null || clave.isBlank() || nombre == null || nombre.isBlank()) {
+                if (clave == null || clave.isBlank()) {
                     errorCount++;
                     results.add(ImportResultDTO.ImportRowResult.builder()
                             .rowNum(i + 1)
-                            .claveCatastral(clave != null ? clave : "")
+                            .claveCatastral("")
                             .success(false)
-                            .error("Clave y nombre son obligatorios")
+                            .error("Clave catastral es obligatoria")
                             .build());
                     continue;
                 }
@@ -471,14 +528,16 @@ public class ManzanaServiceImpl implements ManzanaService {
                     continue;
                 }
 
+                String nombreFinal = (nombre != null && !nombre.isBlank()) ? nombre : clave;
+
                 ManzanaDTO dto = ManzanaDTO.builder()
                         .claveCatastralManzana(clave)
-                        .nombre(nombre)
-                        .sector(getCellStringValue(row.getCell(2)))
-                        .barrio(getCellStringValue(row.getCell(3)))
+                        .nombre(nombreFinal)
+                        .sector(getCellStringValue(row.getCell(sectorCol)))
+                        .barrio(getCellStringValue(row.getCell(barrioCol)))
                         .build();
 
-                String poligonoStr = getCellStringValue(row.getCell(4));
+                String poligonoStr = getCellStringValue(row.getCell(poligonoCol));
                 if (poligonoStr != null && !poligonoStr.isBlank()) {
                     dto.setPoligonoGeoJSON(poligonoStr);
                 }
@@ -519,7 +578,7 @@ public class ManzanaServiceImpl implements ManzanaService {
             XSSFWorkbook wb = new XSSFWorkbook();
             Sheet sheet = wb.createSheet("Manzanas");
 
-            String[] headers = {"claveCatastral", "nombre", "sector", "barrio", "poligono"};
+            String[] headers = {"clave_catastral", "nombre", "sector", "barrio", "poligono"};
             Row headerRow = sheet.createRow(0);
             CellStyle headerStyle = wb.createCellStyle();
             Font headerFont = wb.createFont();
@@ -532,15 +591,15 @@ public class ManzanaServiceImpl implements ManzanaService {
             }
 
             Row exampleRow = sheet.createRow(1);
-            exampleRow.createCell(0).setCellValue("MZ-001");
+            exampleRow.createCell(0).setCellValue("40159001002006");
             exampleRow.createCell(1).setCellValue("Manzana Ejemplo");
             exampleRow.createCell(2).setCellValue("Norte");
             exampleRow.createCell(3).setCellValue("Centro");
-            exampleRow.createCell(4).setCellValue("{\"type\":\"Polygon\",\"coordinates\":[[-78.47,-0.18],[-78.46,-0.18],[-78.46,-0.17],[-78.47,-0.17],[-78.47,-0.18]]}");
+            exampleRow.createCell(4).setCellValue("MULTIPOLYGON (((-78.186 0.933, -78.186 0.934, -78.185 0.934, -78.185 0.933, -78.186 0.933)))");
 
             Row noteRow = sheet.createRow(3);
             Cell noteCell = noteRow.createCell(0);
-            noteCell.setCellValue("Nota: La columna poligono debe contener GeoJSON valido (tipo Polygon). Se puede dejar vacio.");
+            noteCell.setCellValue("Nota: Solo clave_catastral y poligono son obligatorios. nombre/sector/barrio se pueden omitir. poligono acepta WKT (MULTIPOLYGON/POLYGON) o GeoJSON.");
             CellStyle noteStyle = wb.createCellStyle();
             Font noteFont = wb.createFont();
             noteFont.setItalic(true);
@@ -571,5 +630,21 @@ public class ManzanaServiceImpl implements ManzanaService {
             case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
             default -> null;
         };
+    }
+
+    private int findColumnIndex(Sheet sheet, String... possibleNames) {
+        Row headerRow = sheet.getRow(0);
+        if (headerRow == null) return -1;
+        for (int col = 0; col < headerRow.getLastCellNum(); col++) {
+            String headerValue = getCellStringValue(headerRow.getCell(col));
+            if (headerValue == null) continue;
+            String lower = headerValue.toLowerCase().trim();
+            for (String name : possibleNames) {
+                if (lower.equals(name.toLowerCase())) {
+                    return col;
+                }
+            }
+        }
+        return -1;
     }
 }

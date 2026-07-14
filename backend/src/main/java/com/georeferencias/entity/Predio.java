@@ -34,7 +34,7 @@ public class Predio {
     @Column(length = 150)
     private String propietario;
 
-    @Column(nullable = false, length = 200)
+    @Column(length = 200)
     private String direccion;
 
     @Column(length = 20)
@@ -42,6 +42,9 @@ public class Predio {
 
     @Column(columnDefinition = "geometry(Point, 4326)")
     private Geometry georeferencia;
+
+    @Column(columnDefinition = "geometry(MultiPolygon, 4326)")
+    private Geometry poligono;
 
     @Column(length = 200)
     private String referencia;

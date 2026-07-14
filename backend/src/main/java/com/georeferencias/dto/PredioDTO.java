@@ -22,12 +22,12 @@ public class PredioDTO {
 
     private String propietario;
 
-    @NotBlank(message = "La dirección es obligatoria")
     private String direccion;
 
     private String telefono;
     private Double latitud;
     private Double longitud;
+    private String poligonoGeoJSON;
     private String referencia;
     private Double areaTerreno;
     private Double frentes;

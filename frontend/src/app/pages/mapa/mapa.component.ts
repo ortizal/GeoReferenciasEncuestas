@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import * as L from 'leaflet';
 import { ManzanaService } from '../../core/services/manzana.service';
 import { PredioService } from '../../core/services/predio.service';
@@ -247,9 +248,40 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
   searchTerm = '';
   visitaForm: any = { idPredio: null, estadoVisita: 'POSITIVO', viviendaTrabajable: true, observaciones: '' };
 
-  constructor(private manzanaService: ManzanaService, private predioService: PredioService, private visitaService: VisitaService) {}
+  constructor(private manzanaService: ManzanaService, private predioService: PredioService, private visitaService: VisitaService, private route: ActivatedRoute) {}
 
-  ngAfterViewInit() { this.initMap(); this.loadManzanas(); this.loadPredios(); }
+  ngAfterViewInit() {
+    this.initMap();
+    this.loadManzanas();
+    this.loadPredios();
+    this.handleQueryParams();
+  }
+
+  private handleQueryParams() {
+    const type = this.route.snapshot.queryParamMap.get('type');
+    const id = this.route.snapshot.queryParamMap.get('id');
+    if (!type || !id) return;
+
+    const numericId = +id;
+    const checkAndCenter = () => {
+      if (type === 'manzana') {
+        const m = this.manzanas().find(m => m.idManzana === numericId);
+        if (m) { this.selectedManzana.set(m); this.selectedPredio.set(null); this.centerOnManzana(m); return true; }
+      } else if (type === 'predio') {
+        const p = this.predios().find(p => p.idPredio === numericId);
+        if (p) { this.selectedPredio.set(p); this.selectedManzana.set(null); this.centerOnPredio(p); return true; }
+      }
+      return false;
+    };
+
+    if (!checkAndCenter()) {
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        if (checkAndCenter() || attempts > 20) clearInterval(interval);
+      }, 500);
+    }
+  }
   ngOnDestroy() { if (this.map) this.map.remove(); }
 
   private initMap() {
@@ -293,46 +325,50 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
       if (m.poligonoGeoJSON) {
         try {
           const geo = JSON.parse(m.poligonoGeoJSON);
-          const coords = this.extractPolygonCoordinates(geo);
-          console.log(`Manzana "${m.nombre}" coords:`, coords);
-          if (coords.length > 0) {
-            const poly = L.polygon(coords, { color: '#2b4d2b', weight: 2, fillColor: '#3d6b3d', fillOpacity: 0.08 });
-            poly.bindPopup(`<b>${m.nombre}</b><br>Clave: ${m.claveCatastralManzana}`);
-            poly.on('click', () => { this.selectedManzana.set(m); this.selectedPredio.set(null); this.map.fitBounds(poly.getBounds(), { padding: [50, 50] }); });
-            this.manzanaLayer.addLayer(poly);
+          const allRings = this.extractAllPolygonRings(geo);
+          console.log(`Manzana "${m.nombre}" rings:`, allRings.length);
+          if (allRings.length > 0) {
+            const polys = allRings.map(ring =>
+              L.polygon(ring, { color: '#2b4d2b', weight: 2, fillColor: '#3d6b3d', fillOpacity: 0.08 })
+            );
+            const group = L.layerGroup(polys);
+            group.eachLayer(layer => {
+              (layer as L.Polygon).bindPopup(`<b>${m.nombre}</b><br>Clave: ${m.claveCatastralManzana}`);
+              (layer as L.Polygon).on('click', () => { this.selectedManzana.set(m); this.selectedPredio.set(null); this.map.fitBounds((layer as L.Polygon).getBounds(), { padding: [50, 50] }); });
+            });
+            this.manzanaLayer.addLayer(group);
           }
         } catch (e) { console.error(`Error renderizando manzana "${m.nombre}":`, e); }
       }
     });
   }
 
-  private extractPolygonCoordinates(geo: any): Array<[number, number]> {
+  private extractAllPolygonRings(geo: any): Array<Array<[number, number]>> {
     const source = geo?.type === 'FeatureCollection' ? geo.features?.[0]?.geometry : geo;
-    if (!source || !source.coordinates) {
+    if (!source || !source.coordinates) return [];
+
+    let rings: number[][][][] = [];
+    if (source.type === 'MultiPolygon') {
+      rings = source.coordinates;
+    } else if (source.type === 'Polygon') {
+      rings = [source.coordinates];
+    } else {
       return [];
     }
 
-    const firstRing = source.type === 'MultiPolygon'
-      ? source.coordinates?.[0]?.[0]
-      : source.coordinates?.[0];
-
-    if (!Array.isArray(firstRing)) {
-      return [];
-    }
-
-    return firstRing.map((point: number[]) => {
-      const [x, y] = point;
-      if (typeof x !== 'number' || typeof y !== 'number') {
-        return [0, 0] as [number, number];
-      }
-
-      if (Math.abs(x) <= 180 && Math.abs(y) <= 90) {
-        return [y, x] as [number, number];
-      }
-
-      const projected = this.utmToLatLng(x, y, 17, 'N');
-      return [projected.lat, projected.lng] as [number, number];
-    }).filter((point: [number, number]) => point[0] !== 0 || point[1] !== 0);
+    return rings.map(polygon => {
+      const ring = polygon[0];
+      if (!Array.isArray(ring)) return [];
+      return ring.map((point: number[]) => {
+        const [x, y] = point;
+        if (typeof x !== 'number' || typeof y !== 'number') return [0, 0] as [number, number];
+        if (Math.abs(x) <= 180 && Math.abs(y) <= 90) {
+          return [y, x] as [number, number];
+        }
+        const projected = this.utmToLatLng(x, y, 17, 'N');
+        return [projected.lat, projected.lng] as [number, number];
+      }).filter((p: [number, number]) => p[0] !== 0 || p[1] !== 0);
+    }).filter(ring => ring.length > 0);
   }
 
   private utmToLatLng(easting: number, northing: number, zone: number, hemisphere: string): { lat: number; lng: number } {
@@ -373,8 +409,26 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
   private renderPredios() {
     this.predioLayer.clearLayers();
     this.predios().forEach(p => {
-      if (p.latitud && p.longitud) {
-        console.log(`Predio "${p.claveCatastral}" at [${p.latitud}, ${p.longitud}]`);
+      if (p.poligonoGeoJSON) {
+        try {
+          const geo = JSON.parse(p.poligonoGeoJSON);
+          const allRings = this.extractAllPolygonRings(geo);
+          if (allRings.length > 0) {
+            const color = this.getMarkerColor(p.estadoVisita);
+            const polys = allRings.map(ring =>
+              L.polygon(ring, { color, weight: 1.5, fillColor: color, fillOpacity: 0.15 })
+            );
+            const group = L.layerGroup(polys);
+            group.eachLayer(layer => {
+              (layer as L.Polygon).bindPopup(`<b>${p.claveCatastral}</b><br>${p.propietario || ''}<br><span style="color:${color}">${p.estadoVisita || 'Sin Visitar'}</span>`);
+              (layer as L.Polygon).on('click', () => { this.selectedPredio.set(p); this.selectedManzana.set(null); });
+            });
+            this.predioLayer.addLayer(group);
+          }
+        } catch (e) {
+          console.error(`Error renderizando poligono predio "${p.claveCatastral}":`, e);
+        }
+      } else if (p.latitud && p.longitud) {
         const color = this.getMarkerColor(p.estadoVisita);
         const marker = L.circleMarker([p.latitud, p.longitud], { radius: 7, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9 });
         marker.bindPopup(`<b>${p.claveCatastral}</b><br>${p.propietario}<br><span style="color:${color}">${p.estadoVisita || 'Sin Visitar'}</span>`);
@@ -399,6 +453,54 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
     if (!this.searchTerm) return;
     const p = this.predios().find(p => p.claveCatastral.toLowerCase().includes(this.searchTerm.toLowerCase()));
     if (p && p.latitud && p.longitud) { this.selectedPredio.set(p); this.map.setView([p.latitud, p.longitud], 17); }
+  }
+
+  centerOnManzana(m: Manzana) {
+    if (!m.poligonoGeoJSON) return;
+    try {
+      const geo = JSON.parse(m.poligonoGeoJSON);
+      const rings = this.extractAllPolygonRings(geo);
+      if (rings.length > 0) {
+        const allCoords = rings.flat();
+        if (allCoords.length > 0) {
+          const bounds = L.latLngBounds(allCoords);
+          this.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
+          const polys = rings.map(ring =>
+            L.polygon(ring, { color: '#ff6600', weight: 3, fillColor: '#ff6600', fillOpacity: 0.2 })
+          );
+          const highlight = L.layerGroup(polys);
+          highlight.addTo(this.map);
+          setTimeout(() => { this.map.removeLayer(highlight); }, 5000);
+        }
+      }
+    } catch (e) { console.error('Error centrandom manzana:', e); }
+  }
+
+  centerOnPredio(p: Predio) {
+    if (p.poligonoGeoJSON) {
+      try {
+        const geo = JSON.parse(p.poligonoGeoJSON);
+        const rings = this.extractAllPolygonRings(geo);
+        if (rings.length > 0) {
+          const allCoords = rings.flat();
+          if (allCoords.length > 0) {
+            const bounds = L.latLngBounds(allCoords);
+            this.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+            const polys = rings.map(ring =>
+              L.polygon(ring, { color: '#ff6600', weight: 3, fillColor: '#ff6600', fillOpacity: 0.2 })
+            );
+            const highlight = L.layerGroup(polys);
+            highlight.addTo(this.map);
+            setTimeout(() => { this.map.removeLayer(highlight); }, 5000);
+          }
+        }
+      } catch (e) { console.error('Error centrandom predio:', e); }
+    } else if (p.latitud && p.longitud) {
+      this.map.setView([p.latitud, p.longitud], 18);
+      const marker = L.circleMarker([p.latitud, p.longitud], { radius: 10, fillColor: '#ff6600', color: '#fff', weight: 3, fillOpacity: 0.5 });
+      marker.addTo(this.map);
+      setTimeout(() => { this.map.removeLayer(marker); }, 5000);
+    }
   }
 
   verPrediosManzana() {

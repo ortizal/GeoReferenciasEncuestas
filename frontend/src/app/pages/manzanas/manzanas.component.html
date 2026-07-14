@@ -43,10 +43,18 @@
               <td>{{ m.barrio || '—' }}</td>
               <td><span class="badge-premium badge-info">{{ m.totalPredios || 0 }}</span></td>
               <td><span class="badge-premium" [class.badge-success]="m.activo" [class.badge-neutral]="!m.activo">{{ m.activo ? 'Activo' : 'Inactivo' }}</span></td>
-              <td>
-                <div class="row-actions">
-                  <button class="action-btn" (click)="editar(m)" title="Editar"><i class="bi bi-pencil"></i></button>
-                  <button class="action-btn danger" (click)="eliminar(m)" title="Eliminar"><i class="bi bi-trash3"></i></button>
+              <td class="actions-cell">
+                <button class="row-action-btn view-btn" (click)="verEnMapa(m)" title="Ver en mapa">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <div class="row-dropdown" [class.open]="openRowMenu() === m.idManzana">
+                  <button class="row-menu-btn" (click)="toggleRowMenu(m.idManzana!)" title="Mas opciones">
+                    <i class="bi bi-three-dots-vertical"></i>
+                  </button>
+                  <div class="row-dropdown-menu" *ngIf="openRowMenu() === m.idManzana">
+                    <button class="dropdown-item" (click)="editar(m); openRowMenu.set(null)"><i class="bi bi-pencil"></i> Editar</button>
+                    <button class="dropdown-item danger" (click)="eliminar(m); openRowMenu.set(null)"><i class="bi bi-trash3"></i> Eliminar</button>
+                  </div>
                 </div>
               </td>
             </tr>

@@ -54,6 +54,7 @@ export interface Predio {
   telefono?: string;
   latitud?: number;
   longitud?: number;
+  poligonoGeoJSON?: string;
   referencia?: string;
   areaTerreno?: number;
   frentes?: number;

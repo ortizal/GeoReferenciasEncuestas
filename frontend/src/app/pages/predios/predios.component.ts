@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { PredioService } from '../../core/services/predio.service';
 import { ManzanaService } from '../../core/services/manzana.service';
 import { Predio, Manzana } from '../../core/models/models';
@@ -30,16 +31,19 @@ export class PrediosComponent implements OnInit {
   predioSeleccionado: Predio | null = null;
   archivoFile: File | null = null;
   showMapaSelector = signal(false);
+  openRowMenu = signal<number | null>(null);
   initialPoint: [number, number] | null = null;
 
-  constructor(private predioService: PredioService, private manzanaService: ManzanaService) {}
+  constructor(private predioService: PredioService, private manzanaService: ManzanaService, private router: Router) {}
   ngOnInit() { this.loadManzanas(); this.buscar(); }
 
   loadManzanas() { this.manzanaService.listarTodas().subscribe({ next: (r) => { if (r.exitoso) this.manzanas.set(r.datos || []); } }); }
   buscar() { this.predioService.buscar(this.busqueda).subscribe({ next: (r) => { if (r.exitoso) this.predios.set(r.datos?.content || []); } }); }
   abrirFormulario(p?: Predio) { if (p) { this.editando.set(true); this.predioSeleccionado = p; this.formData = { ...p }; } else { this.editando.set(false); this.predioSeleccionado = null; this.formData = {}; } this.showForm.set(true); }
   cerrarFormulario() { this.showForm.set(false); this.formData = {}; }
+  toggleRowMenu(id: number) { this.openRowMenu.set(this.openRowMenu() === id ? null : id); }
   editar(p: Predio) { this.abrirFormulario(p); }
+  verEnMapa(p: Predio) { this.router.navigate(['/mapa'], { queryParams: { type: 'predio', id: p.idPredio } }); }
   guardar() { this.saving.set(true); const op = this.editando() ? this.predioService.actualizar(this.predioSeleccionado!.idPredio!, this.formData) : this.predioService.crear(this.formData); op.subscribe({ next: () => { this.saving.set(false); this.cerrarFormulario(); this.buscar(); }, error: () => { this.saving.set(false); } }); }
   eliminar(p: Predio) { if (confirm(`¿Eliminar predio ${p.claveCatastral}?`)) this.predioService.eliminar(p.idPredio!).subscribe({ next: () => this.buscar() }); }
   getEstadoBadge(estado?: string): string { switch (estado) { case 'POSITIVO': return 'badge-success'; case 'NEGATIVO': return 'badge-danger'; case 'INDECISO': return 'badge-warning'; default: return 'badge-neutral'; } }

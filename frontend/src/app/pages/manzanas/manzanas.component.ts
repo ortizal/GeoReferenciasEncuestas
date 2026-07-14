@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ManzanaService } from '../../core/services/manzana.service';
 import { Manzana } from '../../core/models/models';
 import { MapaSelectorComponent } from '../../shared/components/mapa-selector/mapa-selector.component';
@@ -29,6 +30,7 @@ export class ManzanasComponent implements OnInit {
   manzanaSeleccionada: Manzana | null = null;
   archivoFile: File | null = null;
   showMapaSelector = signal(false);
+  openRowMenu = signal<number | null>(null);
   initialPolygon: [number, number][] = [];
 
   previewData: any = null;
@@ -36,13 +38,15 @@ export class ManzanasComponent implements OnInit {
   previewError = signal('');
   importResult: any = null;
 
-  constructor(private manzanaService: ManzanaService) {}
+  constructor(private manzanaService: ManzanaService, private router: Router) {}
   ngOnInit() { this.buscar(); }
 
   buscar() { this.manzanaService.buscar(this.busqueda, this.filtroActivo).subscribe({ next: (r) => { if (r.exitoso) this.manzanas.set(r.datos?.content || []); } }); }
   abrirFormulario(m?: Manzana) { if (m) { this.editando.set(true); this.manzanaSeleccionada = m; this.formData = { ...m }; } else { this.editando.set(false); this.manzanaSeleccionada = null; this.formData = {}; } this.errorMessage.set(''); this.showForm.set(true); }
   cerrarFormulario() { this.showForm.set(false); this.formData = {}; this.errorMessage.set(''); }
+  toggleRowMenu(id: number) { this.openRowMenu.set(this.openRowMenu() === id ? null : id); }
   editar(m: Manzana) { this.abrirFormulario(m); }
+  verEnMapa(m: Manzana) { this.router.navigate(['/mapa'], { queryParams: { type: 'manzana', id: m.idManzana } }); }
   guardar() {
     const clave = this.formData.claveCatastralManzana?.toString().trim();
     const nombre = this.formData.nombre?.toString().trim();
@@ -162,23 +166,31 @@ export class ManzanasComponent implements OnInit {
     const source = geo?.type === 'FeatureCollection' ? geo.features?.[0]?.geometry : geo;
     if (!source || !source.coordinates) return [];
 
-    const ring = source.type === 'MultiPolygon'
-      ? source.coordinates?.[0]?.[0]
-      : source.coordinates?.[0];
+    let rings: number[][][] = [];
 
-    if (!Array.isArray(ring)) return [];
+    if (source.type === 'MultiPolygon') {
+      rings = source.coordinates.map((polygon: number[][][]) => polygon[0]);
+    } else if (source.type === 'Polygon') {
+      rings = [source.coordinates[0]];
+    } else {
+      return [];
+    }
 
-    return ring.map((point: number[]) => {
-      const [x, y] = point;
-      if (typeof x !== 'number' || typeof y !== 'number') return [0, 0] as [number, number];
+    const allPoints: [number, number][] = [];
+    for (const ring of rings) {
+      for (const point of ring) {
+        const [x, y] = point;
+        if (typeof x !== 'number' || typeof y !== 'number') continue;
 
-      if (Math.abs(x) <= 180 && Math.abs(y) <= 90) {
-        return [y, x] as [number, number];
+        if (Math.abs(x) <= 180 && Math.abs(y) <= 90) {
+          allPoints.push([y, x]);
+        } else {
+          const projected = this.utmToLatLng(x, y, 17, 'N');
+          allPoints.push([projected.lat, projected.lng]);
+        }
       }
-
-      const projected = this.utmToLatLng(x, y, 17, 'N');
-      return [projected.lat, projected.lng] as [number, number];
-    }).filter((p: [number, number]) => p[0] !== 0 || p[1] !== 0);
+    }
+    return allPoints.filter((p: [number, number]) => p[0] !== 0 || p[1] !== 0);
   }
 
   private utmToLatLng(easting: number, northing: number, zone: number, hemisphere: string): { lat: number; lng: number } {

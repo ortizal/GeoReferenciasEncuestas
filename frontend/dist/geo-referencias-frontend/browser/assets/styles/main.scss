@@ -228,3 +228,20 @@ a {
   }
   .table-premium { display: block; overflow-x: auto; }
 }
+
+/* ── Dark Mode Table Overrides ── */
+[data-theme="dark"] .table-premium {
+  thead th {
+    background: #12151a;
+    border-bottom: 1px solid #4a5058;
+  }
+  tbody tr:not(:last-child) td {
+    border-bottom: 1px solid #2a2e34;
+  }
+}
+[data-theme="dark"] .card-premium {
+  border-color: #2a2e34;
+}
+[data-theme="dark"] .card-premium-header {
+  border-bottom-color: #2a2e34;
+}

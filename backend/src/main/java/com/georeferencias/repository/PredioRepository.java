@@ -42,4 +42,7 @@ public interface PredioRepository extends JpaRepository<Predio, Long> {
            "(SELECT v.predio.idPredio FROM Visita v WHERE v.predio.manzana.idManzana = :idManzana) " +
            "AND p.manzana.idManzana = :idManzana AND p.activo = true")
     List<Predio> findPrediosSinVisitar(@Param("idManzana") Long idManzana);
+
+    @Query("SELECT p.claveCatastral FROM Predio p")
+    List<String> findAllClaveCatastral();
 }

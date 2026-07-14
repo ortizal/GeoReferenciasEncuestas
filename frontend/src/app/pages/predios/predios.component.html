@@ -34,7 +34,20 @@
               <td>{{ p.direccion }}</td>
               <td>{{ p.nombreManzana }}</td>
               <td><span class="badge-premium" [ngClass]="getEstadoBadge(p.estadoVisita)">{{ p.estadoVisita || 'Sin Visitar' }}</span></td>
-              <td><div class="row-actions"><button class="action-btn" (click)="editar(p)"><i class="bi bi-pencil"></i></button><button class="action-btn danger" (click)="eliminar(p)"><i class="bi bi-trash3"></i></button></div></td>
+              <td class="actions-cell">
+                <button class="row-action-btn view-btn" (click)="verEnMapa(p)" title="Ver en mapa">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <div class="row-dropdown" [class.open]="openRowMenu() === p.idPredio">
+                  <button class="row-menu-btn" (click)="toggleRowMenu(p.idPredio!)" title="Mas opciones">
+                    <i class="bi bi-three-dots-vertical"></i>
+                  </button>
+                  <div class="row-dropdown-menu" *ngIf="openRowMenu() === p.idPredio">
+                    <button class="dropdown-item" (click)="editar(p); openRowMenu.set(null)"><i class="bi bi-pencil"></i> Editar</button>
+                    <button class="dropdown-item danger" (click)="eliminar(p); openRowMenu.set(null)"><i class="bi bi-trash3"></i> Eliminar</button>
+                  </div>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -79,6 +92,10 @@
               <i class="bi bi-check-circle-fill text-success"></i>
               Ubicación: {{ formData.latitud | number:'1.8-8' }}, {{ formData.longitud | number:'1.8-8' }}
             </span>
+          </div>
+          <div class="form-field full-width">
+            <label>Polígono (WKT o GeoJSON)</label>
+            <textarea class="form-textarea" rows="3" [(ngModel)]="formData.poligonoGeoJSON" placeholder="MULTIPOLYGON (...) o GeoJSON del predio"></textarea>
           </div>
           <div class="form-field full-width"><label>Observaciones</label><textarea class="form-textarea" rows="3" [(ngModel)]="formData.observaciones"></textarea></div>
         </div>

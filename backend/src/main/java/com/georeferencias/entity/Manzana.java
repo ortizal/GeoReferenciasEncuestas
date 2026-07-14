@@ -36,7 +36,7 @@ public class Manzana {
     @Column(length = 50)
     private String barrio;
 
-    @Column(columnDefinition = "geometry(Polygon, 4326)")
+    @Column(columnDefinition = "geometry(MultiPolygon, 4326)")
     private Geometry poligono;
 
     private Double area;
