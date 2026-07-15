@@ -33,6 +33,10 @@ export class PredioService {
     return this.http.get<ApiResponse<Predio[]>>(`${this.apiUrl}/georeferencia`);
   }
 
+  listarTodosActivos(): Observable<ApiResponse<Predio[]>> {
+    return this.http.get<ApiResponse<Predio[]>>(`${this.apiUrl}/todos`);
+  }
+
   listarSinVisitar(idManzana: number): Observable<ApiResponse<Predio[]>> {
     return this.http.get<ApiResponse<Predio[]>>(`${this.apiUrl}/sin-visitar/${idManzana}`);
   }

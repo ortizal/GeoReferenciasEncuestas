@@ -145,6 +145,14 @@ public class PredioServiceImpl implements PredioService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<PredioDTO> listarTodosActivos() {
+        return predioRepository.findAllActivos().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<PredioDTO> listarConGeoreferencia() {
         return predioRepository.findAllConGeoreferencia().stream()
                 .map(this::mapToDTO)

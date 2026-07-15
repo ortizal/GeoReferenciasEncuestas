@@ -6,11 +6,12 @@ import { PredioService } from '../../core/services/predio.service';
 import { ManzanaService } from '../../core/services/manzana.service';
 import { Predio, Manzana } from '../../core/models/models';
 import { MapaSelectorComponent } from '../../shared/components/mapa-selector/mapa-selector.component';
+import { MapModalComponent } from '../../shared/components/map-modal/map-modal.component';
 
 @Component({
   selector: 'app-predios',
   standalone: true,
-  imports: [CommonModule, FormsModule, MapaSelectorComponent],
+  imports: [CommonModule, FormsModule, MapaSelectorComponent, MapModalComponent],
   templateUrl: './predios.component.html',
   styleUrl: './predios.component.css'
 })
@@ -33,17 +34,72 @@ export class PrediosComponent implements OnInit {
   showMapaSelector = signal(false);
   openRowMenu = signal<number | null>(null);
   initialPoint: [number, number] | null = null;
+  formSections = signal({
+    identificacion: true,
+    propietario: false,
+    caracteristicas: false,
+    dimensiones: false,
+    ubicacion: false,
+    observaciones: false,
+  });
+
+  showMapModal = signal(false);
+  mapModalData = signal<{ title: string; geoJSON: string | null; latitud: number | null; longitud: number | null; color: string; itemName: string }>({ title: '', geoJSON: null, latitud: null, longitud: null, color: '#adb5bd', itemName: '' });
+
+  paginaActual = 0;
+  totalPaginas = 0;
+  totalRegistros = 0;
+  tamanoPagina = 20;
 
   constructor(private predioService: PredioService, private manzanaService: ManzanaService, private router: Router) {}
   ngOnInit() { this.loadManzanas(); this.buscar(); }
 
   loadManzanas() { this.manzanaService.listarTodas().subscribe({ next: (r) => { if (r.exitoso) this.manzanas.set(r.datos || []); } }); }
-  buscar() { this.predioService.buscar(this.busqueda).subscribe({ next: (r) => { if (r.exitoso) this.predios.set(r.datos?.content || []); } }); }
-  abrirFormulario(p?: Predio) { if (p) { this.editando.set(true); this.predioSeleccionado = p; this.formData = { ...p }; } else { this.editando.set(false); this.predioSeleccionado = null; this.formData = {}; } this.showForm.set(true); }
+  buscar() {
+    this.predioService.buscar(this.busqueda, true, this.paginaActual, this.tamanoPagina).subscribe({
+      next: (r) => {
+        if (r.exitoso && r.datos) {
+          this.predios.set(r.datos.content || []);
+          this.totalPaginas = r.datos.totalPages;
+          this.totalRegistros = r.datos.totalElements;
+          this.paginaActual = r.datos.number;
+        }
+      }
+    });
+  }
+  irAPagina(pagina: number) {
+    if (pagina < 0 || pagina >= this.totalPaginas) return;
+    this.paginaActual = pagina;
+    this.buscar();
+  }
+  paginasNumeradas(): number[] {
+    const paginas: number[] = [];
+    const inicio = Math.max(0, this.paginaActual - 2);
+    const fin = Math.min(this.totalPaginas, this.paginaActual + 3);
+    for (let i = inicio; i < fin; i++) paginas.push(i);
+    return paginas;
+  }
+  abrirFormulario(p?: Predio) { if (p) { this.editando.set(true); this.predioSeleccionado = p; this.formData = { ...p }; } else { this.editando.set(false); this.predioSeleccionado = null; this.formData = {}; } this.formSections.set({ identificacion: true, propietario: false, caracteristicas: false, dimensiones: false, ubicacion: false, observaciones: false }); this.showForm.set(true); }
   cerrarFormulario() { this.showForm.set(false); this.formData = {}; }
+  toggleSection(key: string) { this.formSections.update(s => ({ ...s, [key]: !(s as any)[key] })); }
   toggleRowMenu(id: number) { this.openRowMenu.set(this.openRowMenu() === id ? null : id); }
   editar(p: Predio) { this.abrirFormulario(p); }
-  verEnMapa(p: Predio) { this.router.navigate(['/mapa'], { queryParams: { type: 'predio', id: p.idPredio } }); }
+  verEnMapa(p: Predio) {
+    const color = this.getEstadoColor(p.estadoVisita);
+    this.mapModalData.set({
+      title: p.claveCatastral || 'Predio',
+      geoJSON: p.poligonoGeoJSON || null,
+      latitud: p.latitud || null,
+      longitud: p.longitud || null,
+      color,
+      itemName: p.propietario || p.claveCatastral || ''
+    });
+    this.showMapModal.set(true);
+  }
+  closeMapModal() { this.showMapModal.set(false); }
+  getEstadoColor(estado?: string): string {
+    switch (estado) { case 'POSITIVO': return '#22c55e'; case 'NEGATIVO': return '#ef4444'; case 'INDECISO': return '#f59e0b'; default: return '#adb5bd'; }
+  }
   guardar() { this.saving.set(true); const op = this.editando() ? this.predioService.actualizar(this.predioSeleccionado!.idPredio!, this.formData) : this.predioService.crear(this.formData); op.subscribe({ next: () => { this.saving.set(false); this.cerrarFormulario(); this.buscar(); }, error: () => { this.saving.set(false); } }); }
   eliminar(p: Predio) { if (confirm(`¿Eliminar predio ${p.claveCatastral}?`)) this.predioService.eliminar(p.idPredio!).subscribe({ next: () => this.buscar() }); }
   getEstadoBadge(estado?: string): string { switch (estado) { case 'POSITIVO': return 'badge-success'; case 'NEGATIVO': return 'badge-danger'; case 'INDECISO': return 'badge-warning'; default: return 'badge-neutral'; } }

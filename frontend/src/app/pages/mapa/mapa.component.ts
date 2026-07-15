@@ -306,7 +306,7 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
   }
 
   loadPredios() {
-    this.predioService.listarConGeoreferencia().subscribe({
+    this.predioService.listarTodosActivos().subscribe({
       next: (r) => {
         console.log('Predios response:', r);
         if (r.exitoso) { this.predios.set(r.datos); this.renderPredios(); }

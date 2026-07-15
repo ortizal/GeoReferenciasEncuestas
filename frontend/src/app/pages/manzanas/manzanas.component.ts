@@ -3,13 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ManzanaService } from '../../core/services/manzana.service';
-import { Manzana } from '../../core/models/models';
+import { PredioService } from '../../core/services/predio.service';
+import { VisitaService } from '../../core/services/visita.service';
+import { AuthService } from '../../core/services/auth.service';
+import { Manzana, Predio } from '../../core/models/models';
 import { MapaSelectorComponent } from '../../shared/components/mapa-selector/mapa-selector.component';
+import { MapModalComponent } from '../../shared/components/map-modal/map-modal.component';
 
 @Component({
   selector: 'app-manzanas',
   standalone: true,
-  imports: [CommonModule, FormsModule, MapaSelectorComponent],
+  imports: [CommonModule, FormsModule, MapaSelectorComponent, MapModalComponent],
   templateUrl: './manzanas.component.html',
   styleUrl: './manzanas.component.css'
 })
@@ -33,20 +37,139 @@ export class ManzanasComponent implements OnInit {
   openRowMenu = signal<number | null>(null);
   initialPolygon: [number, number][] = [];
 
+  showMapModal = signal(false);
+  mapModalData = signal<{ title: string; geoJSON: string | null; color: string; itemName: string }>({ title: '', geoJSON: null, color: '#2b4d2b', itemName: '' });
+  manzanaModalPredios = signal<Predio[]>([]);
+  manzanaModalManzana = signal<Manzana | null>(null);
+
+  showVisitaForm = signal(false);
+  visitaFormPredio: Predio | null = null;
+  visitaFormData: any = { estadoVisita: '', observaciones: '' };
+  visitaSaving = signal(false);
+  visitaMensaje = signal('');
+
   previewData: any = null;
   previewLoading = signal(false);
   previewError = signal('');
   importResult: any = null;
 
-  constructor(private manzanaService: ManzanaService, private router: Router) {}
+  paginaActual = 0;
+  totalPaginas = 0;
+  totalRegistros = 0;
+  tamanoPagina = 20;
+
+  constructor(
+    private manzanaService: ManzanaService,
+    private predioService: PredioService,
+    private visitaService: VisitaService,
+    private authService: AuthService,
+    private router: Router
+  ) {}
   ngOnInit() { this.buscar(); }
 
-  buscar() { this.manzanaService.buscar(this.busqueda, this.filtroActivo).subscribe({ next: (r) => { if (r.exitoso) this.manzanas.set(r.datos?.content || []); } }); }
+  buscar() {
+    this.manzanaService.buscar(this.busqueda, this.filtroActivo, this.paginaActual, this.tamanoPagina).subscribe({
+      next: (r) => {
+        if (r.exitoso && r.datos) {
+          this.manzanas.set(r.datos.content || []);
+          this.totalPaginas = r.datos.totalPages;
+          this.totalRegistros = r.datos.totalElements;
+          this.paginaActual = r.datos.number;
+        }
+      }
+    });
+  }
+  irAPagina(pagina: number) {
+    if (pagina < 0 || pagina >= this.totalPaginas) return;
+    this.paginaActual = pagina;
+    this.buscar();
+  }
+  paginasNumeradas(): number[] {
+    const paginas: number[] = [];
+    const inicio = Math.max(0, this.paginaActual - 2);
+    const fin = Math.min(this.totalPaginas, this.paginaActual + 3);
+    for (let i = inicio; i < fin; i++) paginas.push(i);
+    return paginas;
+  }
   abrirFormulario(m?: Manzana) { if (m) { this.editando.set(true); this.manzanaSeleccionada = m; this.formData = { ...m }; } else { this.editando.set(false); this.manzanaSeleccionada = null; this.formData = {}; } this.errorMessage.set(''); this.showForm.set(true); }
   cerrarFormulario() { this.showForm.set(false); this.formData = {}; this.errorMessage.set(''); }
   toggleRowMenu(id: number) { this.openRowMenu.set(this.openRowMenu() === id ? null : id); }
   editar(m: Manzana) { this.abrirFormulario(m); }
-  verEnMapa(m: Manzana) { this.router.navigate(['/mapa'], { queryParams: { type: 'manzana', id: m.idManzana } }); }
+  verEnMapa(m: Manzana) {
+    this.manzanaModalManzana.set(m);
+    this.mapModalData.set({ title: m.nombre || 'Manzana', geoJSON: m.poligonoGeoJSON || null, color: '#2b4d2b', itemName: m.claveCatastralManzana || '' });
+    this.manzanaModalPredios.set([]);
+    this.showMapModal.set(true);
+
+    if (m.idManzana) {
+      this.predioService.listarPorManzana(m.idManzana).subscribe({
+        next: (r) => {
+          if (r.exitoso && r.datos) {
+            this.manzanaModalPredios.set(r.datos);
+          }
+        }
+      });
+    }
+  }
+  closeMapModal() { this.showMapModal.set(false); }
+
+  onCrearVisitaDesdeMapa(predio: Predio) {
+    this.visitaFormPredio = predio;
+    this.visitaFormData = { estadoVisita: '', observaciones: '' };
+    this.visitaMensaje.set('');
+    this.showVisitaForm.set(true);
+  }
+
+  cerrarVisitaForm() {
+    this.showVisitaForm.set(false);
+    this.visitaFormPredio = null;
+    this.visitaMensaje.set('');
+  }
+
+  guardarVisita() {
+    if (!this.visitaFormPredio || !this.visitaFormData.estadoVisita) {
+      this.visitaMensaje.set('Seleccione un estado para la visita.');
+      return;
+    }
+
+    this.visitaSaving.set(true);
+    this.visitaMensaje.set('');
+
+    const user = this.authService.getCurrentUser();
+    const visita: any = {
+      idPredio: this.visitaFormPredio.idPredio,
+      fechaVisita: new Date().toISOString(),
+      estadoVisita: this.visitaFormData.estadoVisita,
+      observaciones: this.visitaFormData.observaciones || '',
+      idUsuarioVisitador: user?.idUsuario || null,
+      nombreVisitador: user ? `${user.nombre} ${user.apellido}` : ''
+    };
+
+    this.visitaService.crear(visita).subscribe({
+      next: (r) => {
+        this.visitaSaving.set(false);
+        if (r.exitoso) {
+          this.visitaMensaje.set('Visita registrada exitosamente.');
+          if (this.visitaFormPredio?.idPredio) {
+            this.visitaFormPredio = { ...this.visitaFormPredio, estadoVisita: this.visitaFormData.estadoVisita };
+            const predios = this.manzanaModalPredios().map(p =>
+              p.idPredio === this.visitaFormPredio?.idPredio
+                ? { ...p, estadoVisita: this.visitaFormData.estadoVisita }
+                : p
+            );
+            this.manzanaModalPredios.set(predios);
+          }
+          setTimeout(() => this.cerrarVisitaForm(), 1500);
+        } else {
+          this.visitaMensaje.set(r.mensaje || 'Error al crear la visita.');
+        }
+      },
+      error: (err: any) => {
+        this.visitaSaving.set(false);
+        this.visitaMensaje.set(err?.error?.mensaje || 'Error al conectar con el servidor.');
+      }
+    });
+  }
   guardar() {
     const clave = this.formData.claveCatastralManzana?.toString().trim();
     const nombre = this.formData.nombre?.toString().trim();

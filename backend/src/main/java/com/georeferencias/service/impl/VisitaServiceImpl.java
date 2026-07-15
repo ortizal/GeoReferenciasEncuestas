@@ -1,5 +1,6 @@
 package com.georeferencias.service.impl;
 
+import com.georeferencias.dto.NotificacionVisitaDTO;
 import com.georeferencias.dto.VisitaDTO;
 import com.georeferencias.entity.Predio;
 import com.georeferencias.entity.Usuario;
@@ -12,6 +13,8 @@ import com.georeferencias.repository.UsuarioRepository;
 import com.georeferencias.repository.VisitaRepository;
 import com.georeferencias.service.VisitaService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class VisitaServiceImpl implements VisitaService {
@@ -30,6 +34,7 @@ public class VisitaServiceImpl implements VisitaService {
     private final VisitaRepository visitaRepository;
     private final PredioRepository predioRepository;
     private final UsuarioRepository usuarioRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -37,12 +42,17 @@ public class VisitaServiceImpl implements VisitaService {
         Predio predio = predioRepository.findById(dto.getIdPredio())
                 .orElseThrow(() -> new ResourceNotFoundException("Predio no encontrado"));
 
-        Usuario usuario = usuarioRepository.findById(dto.getIdUsuarioVisitador())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Usuario usuario = null;
+        if (dto.getIdUsuarioVisitador() != null) {
+            usuario = usuarioRepository.findById(dto.getIdUsuarioVisitador())
+                    .orElse(null);
+        }
 
         Visita visita = new Visita();
         visita.setPredio(predio);
-        visita.setUsuarioVisitador(usuario);
+        if (usuario != null) {
+            visita.setUsuarioVisitador(usuario);
+        }
         visita.setFechaVisita(dto.getFechaVisita());
         visita.setEstadoVisita(EstadoVisita.valueOf(dto.getEstadoVisita()));
         visita.setObservaciones(dto.getObservaciones());
@@ -54,6 +64,25 @@ public class VisitaServiceImpl implements VisitaService {
         visita.setViviendaTrabajable(dto.getViviendaTrabajable());
 
         visita = visitaRepository.save(visita);
+
+        NotificacionVisitaDTO notificacion = NotificacionVisitaDTO.builder()
+                .idVisita(visita.getIdVisita())
+                .idPredio(predio.getIdPredio())
+                .claveCatastralPredio(predio.getClaveCatastral())
+                .propietarioPredio(predio.getPropietario())
+                .nombreVisitador(dto.getNombreVisitador() != null ? dto.getNombreVisitador() : (usuario != null ? usuario.getNombre() + " " + usuario.getApellido() : "Sin asignar"))
+                .estadoVisita(visita.getEstadoVisita().name())
+                .fechaVisita(visita.getFechaVisita())
+                .mensaje("Nueva visita registrada en predio " + predio.getClaveCatastral())
+                .build();
+
+        try {
+            messagingTemplate.convertAndSend("/topic/visitas", notificacion);
+            log.info("Notificación de visita enviada por WebSocket: {}", notificacion.getMensaje());
+        } catch (Exception e) {
+            log.warn("Error al enviar notificación WebSocket: {}", e.getMessage());
+        }
+
         return mapToDTO(visita);
     }
 

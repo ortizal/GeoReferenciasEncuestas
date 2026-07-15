@@ -92,6 +92,13 @@ public class PredioController {
         return ResponseEntity.ok(ApiResponse.exito(resultado, "Predios obtenidos"));
     }
 
+    @GetMapping("/todos")
+    @Operation(summary = "Listar todos los predios activos")
+    public ResponseEntity<ApiResponse<List<PredioDTO>>> listarTodosActivos() {
+        List<PredioDTO> resultado = predioService.listarTodosActivos();
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Predios obtenidos"));
+    }
+
     @GetMapping("/sin-visitar/{idManzana}")
     @Operation(summary = "Listar predios sin visitar por manzana")
     public ResponseEntity<ApiResponse<List<PredioDTO>>> listarSinVisitar(@PathVariable Long idManzana) {

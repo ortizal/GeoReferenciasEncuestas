@@ -22,15 +22,17 @@ import { FooterComponent } from './footer/footer.component';
     </div>
   `,
   styles: [`
-    .app-layout { display: flex; min-height: 100vh; }
+    .app-layout { display: flex; height: 100vh; overflow: hidden; }
     .main-area {
       flex: 1; margin-left: var(--sidebar-width); transition: margin-left var(--transition-slow);
-      display: flex; flex-direction: column; min-height: 100vh;
+      display: flex; flex-direction: column; height: 100vh; overflow: hidden;
     }
     .sidebar-collapsed .main-area { margin-left: var(--sidebar-collapsed-width); }
     .main-content { flex: 1; padding: var(--space-6); background: var(--bg-app); overflow-y: auto; }
     @media (max-width: 768px) {
-      .main-area { margin-left: 0; }
+      .app-layout { height: auto; overflow: visible; }
+      .main-area { margin-left: 0; height: auto; overflow: visible; }
+      .main-content { overflow: visible; }
     }
   `]
 })

@@ -1,7 +1,9 @@
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/GeoReferenciasApplication.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/config/SecurityConfig.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/config/SwaggerConfig.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/config/WebSocketConfig.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/controller/AuthController.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/controller/ConfiguracionController.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/controller/DashboardController.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/controller/ManzanaController.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/controller/PredioController.java
@@ -14,8 +16,12 @@
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/LoginRequest.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/LoginResponse.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/ManzanaDTO.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/ModuloDTO.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/NotificacionVisitaDTO.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/PermisoDTO.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/PredioDTO.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/RefreshTokenRequest.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/RolPermisosDTO.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/UsuarioDTO.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/VisitaDTO.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/entity/Auditoria.java
@@ -37,6 +43,8 @@
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/repository/AuditoriaRepository.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/repository/BitacoraRepository.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/repository/ManzanaRepository.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/repository/ModuloRepository.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/repository/PermisoRepository.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/repository/PredioRepository.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/repository/RolRepository.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/repository/UsuarioRepository.java
@@ -46,11 +54,13 @@
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/security/JwtUserDetails.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/security/JwtUserDetailsService.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/AuthService.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/ConfiguracionService.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/DashboardService.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/ManzanaService.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/PredioService.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/VisitaService.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/impl/AuthServiceImpl.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/impl/ConfiguracionServiceImpl.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/impl/DashboardServiceImpl.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/impl/ManzanaServiceImpl.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/service/impl/PredioServiceImpl.java

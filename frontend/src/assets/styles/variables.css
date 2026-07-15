@@ -155,4 +155,19 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
   --shadow-lg: 0 10px 15px rgba(0,0,0,0.35);
+
+  --neutral-0: #1a1d21;
+  --neutral-25: #1e2126;
+  --neutral-50: #22262b;
+  --neutral-100: #2a2e34;
+  --neutral-200: #3a3f46;
+  --neutral-300: #4a5058;
+
+  --primary-50: #1a2e1a;
+  --primary-100: #234023;
+
+  --success-50: #0d2818;
+  --success-100: #14432a;
+  --danger-50: #2d1214;
+  --danger-100: #3c1a1c;
 }

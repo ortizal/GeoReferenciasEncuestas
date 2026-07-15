@@ -44,14 +44,12 @@
               <td><span class="badge-premium badge-info">{{ m.totalPredios || 0 }}</span></td>
               <td><span class="badge-premium" [class.badge-success]="m.activo" [class.badge-neutral]="!m.activo">{{ m.activo ? 'Activo' : 'Inactivo' }}</span></td>
               <td class="actions-cell">
-                <button class="row-action-btn view-btn" (click)="verEnMapa(m)" title="Ver en mapa">
-                  <i class="bi bi-eye"></i>
-                </button>
                 <div class="row-dropdown" [class.open]="openRowMenu() === m.idManzana">
                   <button class="row-menu-btn" (click)="toggleRowMenu(m.idManzana!)" title="Mas opciones">
                     <i class="bi bi-three-dots-vertical"></i>
                   </button>
                   <div class="row-dropdown-menu" *ngIf="openRowMenu() === m.idManzana">
+                    <button class="dropdown-item" (click)="verEnMapa(m); openRowMenu.set(null)"><i class="bi bi-eye"></i> Ver en mapa</button>
                     <button class="dropdown-item" (click)="editar(m); openRowMenu.set(null)"><i class="bi bi-pencil"></i> Editar</button>
                     <button class="dropdown-item danger" (click)="eliminar(m); openRowMenu.set(null)"><i class="bi bi-trash3"></i> Eliminar</button>
                   </div>
@@ -64,8 +62,12 @@
     </div>
 
     <div class="table-footer">
-      <span class="table-info">Mostrando {{ manzanas().length }} registros</span>
-      <div class="pagination"><button class="page-btn" disabled>Anterior</button><button class="page-btn active">1</button><button class="page-btn">Siguiente</button></div>
+      <span class="table-info">Mostrando {{ manzanas().length }} de {{ totalRegistros }} registros</span>
+      <div class="pagination" *ngIf="totalPaginas > 1">
+        <button class="page-btn" [disabled]="paginaActual === 0" (click)="irAPagina(paginaActual - 1)">Anterior</button>
+        <button *ngFor="let p of paginasNumeradas()" class="page-btn" [class.active]="p === paginaActual" (click)="irAPagina(p)">{{ p + 1 }}</button>
+        <button class="page-btn" [disabled]="paginaActual >= totalPaginas - 1" (click)="irAPagina(paginaActual + 1)">Siguiente</button>
+      </div>
     </div>
   </div>
 
@@ -193,6 +195,55 @@
   </div>
 
   <!-- Mapa Selector -->
+</div>
+<app-map-modal
+  *ngIf="showMapModal()"
+  [title]="mapModalData().title"
+  [geoJSON]="mapModalData().geoJSON"
+  [color]="mapModalData().color"
+  [itemName]="mapModalData().itemName"
+  [predios]="manzanaModalPredios()"
+  [manzana]="manzanaModalManzana()"
+  (close)="closeMapModal()"
+  (crearVisita)="onCrearVisitaDesdeMapa($event)">
+</app-map-modal>
+
+<div class="modal-overlay" *ngIf="showVisitaForm()" (click)="cerrarVisitaForm()">
+  <div class="modal-card modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h4>Agregar Visita</h4>
+      <button class="modal-close" (click)="cerrarVisitaForm()"><i class="bi bi-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="visita-predio-info" *ngIf="visitaFormPredio">
+        <div class="info-row"><span class="info-label">Predio</span><span class="info-value">{{ visitaFormPredio.claveCatastral }}</span></div>
+        <div class="info-row"><span class="info-label">Propietario</span><span class="info-value">{{ visitaFormPredio.propietario || '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Dirección</span><span class="info-value">{{ visitaFormPredio.direccion || '—' }}</span></div>
+      </div>
+      <div class="form-field">
+        <label>Estado de la Visita *</label>
+        <select class="form-input" [(ngModel)]="visitaFormData.estadoVisita">
+          <option value="">Seleccione estado</option>
+          <option value="POSITIVO">Positivo</option>
+          <option value="NEGATIVO">Negativo</option>
+          <option value="INDECISO">Indeciso</option>
+          <option value="NO_LOCALIZADA">No Localizada</option>
+          <option value="RECHAZADA">Rechazada</option>
+          <option value="REPROGRAMADA">Reprogramada</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Observaciones</label>
+        <textarea class="form-textarea" rows="3" [(ngModel)]="visitaFormData.observaciones" placeholder="Observaciones de la visita..."></textarea>
+      </div>
+      <div class="visita-mensaje error" *ngIf="visitaMensaje() && !visitaMensaje().includes('exitosamente')"><i class="bi bi-exclamation-circle-fill"></i> {{ visitaMensaje() }}</div>
+      <div class="visita-mensaje success" *ngIf="visitaMensaje() && visitaMensaje().includes('exitosamente')"><i class="bi bi-check-circle-fill"></i> {{ visitaMensaje() }}</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="cerrarVisitaForm()">Cancelar</button>
+      <button class="btn-save" (click)="guardarVisita()" [disabled]="visitaSaving()">{{ visitaSaving() ? 'Guardando...' : 'Registrar Visita' }}</button>
+    </div>
+  </div>
 </div>
 <app-mapa-selector
   *ngIf="showMapaSelector()"

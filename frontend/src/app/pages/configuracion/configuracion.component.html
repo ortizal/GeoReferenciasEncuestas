@@ -1,0 +1,94 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Configuración</h1>
+      <p class="page-subtitle">Gestión de permisos por rol</p>
+    </div>
+  </div>
+
+  <div class="config-grid" *ngIf="!loading()">
+    <div class="roles-panel card-premium">
+      <div class="panel-header">
+        <i class="bi bi-shield-lock"></i>
+        <h3>Roles</h3>
+      </div>
+      <div class="roles-list">
+        <div
+          *ngFor="let rol of roles()"
+          class="role-card"
+          [class.selected]="rolSeleccionado()?.idRol === rol.idRol"
+          (click)="seleccionarRol(rol)">
+          <div class="role-icon" [ngClass]="getRolBadgeClass(rol.nombre)">
+            <i class="bi" [ngClass]="{
+              'bi-shield-check': rol.nombre === 'ADMINISTRADOR',
+              'bi-person-check': rol.nombre === 'SUPERVISOR',
+              'bi-person': rol.nombre === 'VISITADOR'
+            }"></i>
+          </div>
+          <div class="role-info">
+            <span class="role-name">{{ rol.nombre }}</span>
+            <span class="role-desc">{{ rol.permisos.length }} permisos asignados</span>
+          </div>
+          <i class="bi bi-chevron-right role-arrow"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="permisos-panel card-premium" *ngIf="rolSeleccionado()">
+      <div class="panel-header">
+        <i class="bi bi-key"></i>
+        <h3>Permisos — {{ rolSeleccionado()?.nombre }}</h3>
+        <button class="btn-save" (click)="guardar()" [disabled]="guardando()">
+          <i class="bi bi-check-lg"></i> {{ guardando() ? 'Guardando...' : 'Guardar Cambios' }}
+        </button>
+      </div>
+
+      <div class="mensaje" *ngIf="mensaje()" [ngClass]="mensajeTipo()">
+        <i class="bi" [ngClass]="mensajeTipo() === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill'"></i>
+        {{ mensaje() }}
+      </div>
+
+      <div class="modulos-list">
+        <div *ngFor="let modulo of modulos()" class="modulo-section">
+          <div class="modulo-header" (click)="toggleModuloPermisos(modulo)">
+            <div class="modulo-check">
+              <input
+                type="checkbox"
+                [checked]="isModuloCompleto(modulo)"
+                [indeterminate]="isModuloParcial(modulo)"
+                (click)="$event.stopPropagation()"
+                (change)="toggleModuloPermisos(modulo)">
+            </div>
+            <div class="modulo-info">
+              <span class="modulo-name">{{ modulo.nombre }}</span>
+              <span class="modulo-desc">{{ modulo.descripcion }}</span>
+            </div>
+            <span class="modulo-count">{{ getPermisosModulo(modulo).length }} permisos</span>
+          </div>
+          <div class="permisos-grid">
+            <label *ngFor="let permiso of getPermisosModulo(modulo)" class="permiso-item"
+                   [class.checked]="permisosSeleccionados().has(permiso.idPermiso)">
+              <input
+                type="checkbox"
+                [checked]="permisosSeleccionados().has(permiso.idPermiso)"
+                (change)="togglePermiso(permiso.idPermiso)">
+              <span class="permiso-name">{{ permiso.nombre }}</span>
+              <span class="permiso-desc">{{ permiso.descripcion }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="!rolSeleccionado()">
+      <i class="bi bi-shield-lock empty-icon"></i>
+      <h3 class="empty-title">Seleccione un Rol</h3>
+      <p class="empty-description">Elija un rol de la izquierda para configurar sus permisos</p>
+    </div>
+  </div>
+
+  <div class="loading-state" *ngIf="loading()">
+    <div class="spinner"></div>
+    <span>Cargando configuración...</span>
+  </div>
+</div>

@@ -1,12 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { Dashboard } from '../../core/models/models';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   template: `
     <div class="dashboard">
       <div class="page-header">
@@ -90,7 +91,7 @@ import { Dashboard } from '../../core/models/models';
         <div class="card-premium activity-card">
           <div class="card-premium-header">
             <span class="card-premium-title">Actividad Reciente</span>
-            <a class="view-all">Ver todo</a>
+            <a class="view-all" routerLink="/visitas">Ver todo</a>
           </div>
           <div class="card-premium-body no-padding">
             <div class="activity-list">
@@ -243,15 +244,15 @@ import { Dashboard } from '../../core/models/models';
     .activity-meta { font-size: var(--text-xs); color: var(--text-tertiary); }
 
     .map-placeholder {
-      height: 220px; background: linear-gradient(135deg, var(--primary-50), var(--neutral-100));
+      height: 220px; background: linear-gradient(135deg, var(--bg-surface), var(--bg-hover));
       position: relative; overflow: hidden;
     }
     .map-grid { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-evenly; opacity: 0.3; }
-    .grid-line { height: 1px; background: var(--primary-200); }
+    .grid-line { height: 1px; background: var(--border-default); }
     .map-dots { position: absolute; inset: 0; }
     .map-dot {
       position: absolute; width: 10px; height: 10px; border-radius: 50%;
-      border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      border: 2px solid var(--bg-surface); box-shadow: 0 1px 4px rgba(0,0,0,0.2);
       animation: pulse 2s infinite;
     }
     .dot-green { background: var(--success-500); }
@@ -262,7 +263,7 @@ import { Dashboard } from '../../core/models/models';
     .map-center-label {
       position: absolute; bottom: var(--space-4); left: 50%; transform: translateX(-50%);
       display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4);
-      background: rgba(255,255,255,0.9); border-radius: var(--radius-full); box-shadow: var(--shadow-sm);
+      background: var(--bg-surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-full); box-shadow: var(--shadow-sm);
       i { color: var(--primary-600); }
       span { font-size: var(--text-xs); font-weight: 600; color: var(--text-primary); }
     }

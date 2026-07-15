@@ -35,6 +35,9 @@ public interface PredioRepository extends JpaRepository<Predio, Long> {
     @Query("SELECT p FROM Predio p WHERE p.georeferencia IS NOT NULL AND p.activo = true")
     List<Predio> findAllConGeoreferencia();
 
+    @Query("SELECT p FROM Predio p WHERE p.activo = true")
+    List<Predio> findAllActivos();
+
     @Query("SELECT COUNT(p) FROM Predio p WHERE p.manzana.idManzana = :idManzana AND p.activo = true")
     Long countByManzana(@Param("idManzana") Long idManzana);
 

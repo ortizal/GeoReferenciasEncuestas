@@ -47,12 +47,12 @@ import { Visita } from '../../core/models/models';
           <div class="modal-header"><h4>Detalles de Visita</h4><button class="modal-close" (click)="cerrarDetalles()"><i class="bi bi-x"></i></button></div>
           <div class="modal-body" *ngIf="visitaSeleccionada">
             <div class="detail-grid">
-              <div class="detail-item"><span class="detail-label">Predio</span><span class="detail-value">{{ visitaSeleccionada?.claveCatastralPredio }}</span></div>
-              <div class="detail-item"><span class="detail-label">Propietario</span><span class="detail-value">{{ visitaSeleccionada?.propietarioPredio }}</span></div>
-              <div class="detail-item"><span class="detail-label">Visitador</span><span class="detail-value">{{ visitaSeleccionada?.nombreVisitador }}</span></div>
-              <div class="detail-item"><span class="detail-label">Fecha</span><span class="detail-value">{{ visitaSeleccionada?.fechaVisita | date:'dd/MM/yyyy HH:mm' }}</span></div>
-              <div class="detail-item full"><span class="detail-label">Estado</span><span class="badge-premium" [ngClass]="getEstadoBadge(visitaSeleccionada?.estadoVisita)">{{ visitaSeleccionada?.estadoVisita }}</span></div>
-              <div class="detail-item full"><span class="detail-label">Observaciones</span><span class="detail-value">{{ visitaSeleccionada?.observaciones || 'Sin observaciones' }}</span></div>
+              <div class="detail-item"><span class="detail-label">Predio</span><span class="detail-value">{{ visitaSeleccionada.claveCatastralPredio }}</span></div>
+              <div class="detail-item"><span class="detail-label">Propietario</span><span class="detail-value">{{ visitaSeleccionada.propietarioPredio }}</span></div>
+              <div class="detail-item"><span class="detail-label">Visitador</span><span class="detail-value">{{ visitaSeleccionada.nombreVisitador }}</span></div>
+              <div class="detail-item"><span class="detail-label">Fecha</span><span class="detail-value">{{ visitaSeleccionada.fechaVisita | date:'dd/MM/yyyy HH:mm' }}</span></div>
+              <div class="detail-item full"><span class="detail-label">Estado</span><span class="badge-premium" [ngClass]="getEstadoBadge(visitaSeleccionada.estadoVisita)">{{ visitaSeleccionada.estadoVisita }}</span></div>
+              <div class="detail-item full"><span class="detail-label">Observaciones</span><span class="detail-value">{{ visitaSeleccionada.observaciones || 'Sin observaciones' }}</span></div>
             </div>
           </div>
           <div class="modal-footer"><button class="btn-cancel" (click)="cerrarDetalles()">Cerrar</button></div>
@@ -74,7 +74,7 @@ import { Visita } from '../../core/models/models';
     .card-premium-body { padding: 0; }
     .no-padding { padding: 0 !important; }
     .table-responsive { overflow-x: auto; }
-    .table-premium { width: 100%; border-collapse: separate; border-spacing: 0; thead th { padding: var(--space-3) var(--space-4); font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; background: var(--neutral-50); border-bottom: 1px solid var(--border-default); white-space: nowrap; } tbody tr { transition: background var(--transition-fast); &:hover { background: var(--bg-hover); } &:not(:last-child) td { border-bottom: 1px solid var(--border-light); } } tbody td { padding: var(--space-3) var(--space-4); font-size: var(--text-sm); vertical-align: middle; } }
+    .table-premium { width: 100%; border-collapse: separate; border-spacing: 0; thead th { padding: var(--space-3) var(--space-4); font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; background: var(--neutral-50); border-bottom: 2px solid var(--border-default); white-space: nowrap; } tbody tr { transition: background var(--transition-fast); &:nth-child(even) { background: var(--neutral-25); } &:nth-child(odd) { background: var(--neutral-0); } &:hover { background: var(--bg-hover) !important; } &:not(:last-child) td { border-bottom: 1px solid var(--border-light); } } tbody td { padding: var(--space-3) var(--space-4); font-size: var(--text-sm); vertical-align: middle; } }
     .cell-code { font-size: var(--text-xs); background: var(--neutral-100); padding: 0.15em 0.5em; border-radius: var(--radius-sm); font-family: var(--font-mono); }
     .cell-primary { font-weight: 500; }
     .obs-cell { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }

@@ -68,6 +68,10 @@ import { AuthService } from '../../core/services/auth.service';
           <i class="bi bi-people nav-icon"></i>
           <span class="nav-label" *ngIf="!isCollapsed()">Usuarios</span>
         </a>
+        <a class="nav-item" routerLink="/configuracion" routerLinkActive="active" *ngIf="isAdmin()" [title]="isCollapsed() ? 'Configuración' : ''">
+          <i class="bi bi-gear nav-icon"></i>
+          <span class="nav-label" *ngIf="!isCollapsed()">Configuración</span>
+        </a>
       </nav>
 
       <div class="sidebar-footer">

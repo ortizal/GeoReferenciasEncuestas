@@ -35,14 +35,12 @@
               <td>{{ p.nombreManzana }}</td>
               <td><span class="badge-premium" [ngClass]="getEstadoBadge(p.estadoVisita)">{{ p.estadoVisita || 'Sin Visitar' }}</span></td>
               <td class="actions-cell">
-                <button class="row-action-btn view-btn" (click)="verEnMapa(p)" title="Ver en mapa">
-                  <i class="bi bi-eye"></i>
-                </button>
                 <div class="row-dropdown" [class.open]="openRowMenu() === p.idPredio">
                   <button class="row-menu-btn" (click)="toggleRowMenu(p.idPredio!)" title="Mas opciones">
                     <i class="bi bi-three-dots-vertical"></i>
                   </button>
                   <div class="row-dropdown-menu" *ngIf="openRowMenu() === p.idPredio">
+                    <button class="dropdown-item" (click)="verEnMapa(p); openRowMenu.set(null)"><i class="bi bi-eye"></i> Ver en mapa</button>
                     <button class="dropdown-item" (click)="editar(p); openRowMenu.set(null)"><i class="bi bi-pencil"></i> Editar</button>
                     <button class="dropdown-item danger" (click)="eliminar(p); openRowMenu.set(null)"><i class="bi bi-trash3"></i> Eliminar</button>
                   </div>
@@ -53,52 +51,129 @@
         </table>
       </div>
     </div>
+    <div class="table-footer">
+      <span class="table-info">Mostrando {{ predios().length }} de {{ totalRegistros }} registros</span>
+      <div class="pagination" *ngIf="totalPaginas > 1">
+        <button class="page-btn" [disabled]="paginaActual === 0" (click)="irAPagina(paginaActual - 1)">Anterior</button>
+        <button *ngFor="let p of paginasNumeradas()" class="page-btn" [class.active]="p === paginaActual" (click)="irAPagina(p)">{{ p + 1 }}</button>
+        <button class="page-btn" [disabled]="paginaActual >= totalPaginas - 1" (click)="irAPagina(paginaActual + 1)">Siguiente</button>
+      </div>
+    </div>
   </div>
-
-  <!-- Modal Formulario -->
   <div class="modal-overlay" *ngIf="showForm()" (click)="cerrarFormulario()">
     <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
       <div class="modal-header"><h4>{{ editando() ? 'Editar' : 'Nuevo' }} Predio</h4><button class="modal-close" (click)="cerrarFormulario()"><i class="bi bi-x"></i></button></div>
       <div class="modal-body">
-        <div class="form-grid">
-          <div class="form-field"><label>Manzana *</label><select class="form-input" [(ngModel)]="formData.idManzana"><option value="">Seleccione</option><option *ngFor="let m of manzanas()" [value]="m.idManzana">{{ m.nombre }}</option></select></div>
-          <div class="form-field"><label>Clave Catastral *</label><input class="form-input" [(ngModel)]="formData.claveCatastral"></div>
-          <div class="form-field"><label>Cod Predio</label><input class="form-input" [(ngModel)]="formData.codPredio"></div>
-          <div class="form-field"><label>Nro Predial</label><input class="form-input" [(ngModel)]="formData.nroPredial"></div>
-          <div class="form-field"><label>Cedula Catastral</label><input class="form-input" [(ngModel)]="formData.cedulaCatastral"></div>
-          <div class="form-field"><label>Propietario</label><input class="form-input" [(ngModel)]="formData.propietario"></div>
-          <div class="form-field"><label>Teléfono Propietario</label><input class="form-input" [(ngModel)]="formData.telefonoPropietario"></div>
-          <div class="form-field"><label>Teléfono</label><input class="form-input" [(ngModel)]="formData.telefono"></div>
-          <div class="form-field full-width"><label>Dirección *</label><input class="form-input" [(ngModel)]="formData.direccion"></div>
-          <div class="form-field full-width"><label>Referencia</label><input class="form-input" [(ngModel)]="formData.referencia"></div>
-          <div class="form-field"><label>Uso</label><input class="form-input" [(ngModel)]="formData.uso"></div>
-          <div class="form-field"><label>Estado</label><select class="form-input" [(ngModel)]="formData.estado"><option value="">Seleccione</option><option value="POSITIVO">Positivo</option><option value="NEGATIVO">Negativo</option><option value="INDECISO">Indeciso</option></select></div>
-          <div class="form-field"><label>Servicios Básicos</label><input class="form-input" [(ngModel)]="formData.serviciosBasicos"></div>
-          <div class="form-field"><label>Area Terreno (m²)</label><input class="form-input" type="number" [(ngModel)]="formData.areaTerreno" step="0.01"></div>
-          <div class="form-field"><label>Frentes (m)</label><input class="form-input" type="number" [(ngModel)]="formData.frentes" step="0.01"></div>
-          <div class="form-field"><label>Nro Pisos</label><input class="form-input" type="number" [(ngModel)]="formData.nroPisos"></div>
-          <div class="form-field"><label>Area Construida (m²)</label><input class="form-input" type="number" [(ngModel)]="formData.areaConstruccion" step="0.01"></div>
-          <div class="form-field"><label>Norte (m)</label><input class="form-input" type="number" [(ngModel)]="formData.norte" step="0.01"></div>
-          <div class="form-field"><label>Sur (m)</label><input class="form-input" type="number" [(ngModel)]="formData.sur" step="0.01"></div>
-          <div class="form-field"><label>Este (m)</label><input class="form-input" type="number" [(ngModel)]="formData.este" step="0.01"></div>
-          <div class="form-field"><label>Oeste (m)</label><input class="form-input" type="number" [(ngModel)]="formData.oeste" step="0.01"></div>
-          <div class="form-field"><label>Latitud</label><input class="form-input" type="number" [(ngModel)]="formData.latitud" step="0.00000001"></div>
-          <div class="form-field"><label>Longitud</label><input class="form-input" type="number" [(ngModel)]="formData.longitud" step="0.00000001"></div>
-          <div class="form-field full-width">
-            <button class="btn-map-select" type="button" (click)="abrirMapaSelector()" title="Seleccionar ubicación en el mapa">
-              <i class="bi bi-geo-alt"></i> Seleccionar en Mapa
-            </button>
-            <span class="map-select-hint" *ngIf="formData.latitud && formData.longitud">
-              <i class="bi bi-check-circle-fill text-success"></i>
-              Ubicación: {{ formData.latitud | number:'1.8-8' }}, {{ formData.longitud | number:'1.8-8' }}
-            </span>
+
+        <!-- Seccion: Identificacion -->
+        <div class="form-section">
+          <div class="form-section-header" (click)="toggleSection('identificacion')">
+            <i class="bi bi-grid-3x3"></i><span>Identificación</span>
+            <i class="bi" [ngClass]="formSections().identificacion ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
           </div>
-          <div class="form-field full-width">
-            <label>Polígono (WKT o GeoJSON)</label>
-            <textarea class="form-textarea" rows="3" [(ngModel)]="formData.poligonoGeoJSON" placeholder="MULTIPOLYGON (...) o GeoJSON del predio"></textarea>
+          <div class="form-section-body" *ngIf="formSections().identificacion">
+            <div class="form-grid">
+              <div class="form-field"><label>Manzana *</label><select class="form-input" [(ngModel)]="formData.idManzana"><option value="">Seleccione</option><option *ngFor="let m of manzanas()" [value]="m.idManzana">{{ m.nombre }}</option></select></div>
+              <div class="form-field"><label>Clave Catastral *</label><input class="form-input" [(ngModel)]="formData.claveCatastral"></div>
+              <div class="form-field"><label>Cod Predio</label><input class="form-input" [(ngModel)]="formData.codPredio"></div>
+              <div class="form-field"><label>Nro Predial</label><input class="form-input" [(ngModel)]="formData.nroPredial"></div>
+              <div class="form-field"><label>Cedula Catastral</label><input class="form-input" [(ngModel)]="formData.cedulaCatastral"></div>
+            </div>
           </div>
-          <div class="form-field full-width"><label>Observaciones</label><textarea class="form-textarea" rows="3" [(ngModel)]="formData.observaciones"></textarea></div>
         </div>
+
+        <!-- Seccion: Propietario -->
+        <div class="form-section">
+          <div class="form-section-header" (click)="toggleSection('propietario')">
+            <i class="bi bi-person"></i><span>Propietario</span>
+            <i class="bi" [ngClass]="formSections().propietario ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </div>
+          <div class="form-section-body" *ngIf="formSections().propietario">
+            <div class="form-grid">
+              <div class="form-field"><label>Propietario</label><input class="form-input" [(ngModel)]="formData.propietario"></div>
+              <div class="form-field"><label>Teléfono Propietario</label><input class="form-input" [(ngModel)]="formData.telefonoPropietario"></div>
+              <div class="form-field"><label>Teléfono</label><input class="form-input" [(ngModel)]="formData.telefono"></div>
+              <div class="form-field full-width"><label>Dirección *</label><input class="form-input" [(ngModel)]="formData.direccion"></div>
+              <div class="form-field full-width"><label>Referencia</label><input class="form-input" [(ngModel)]="formData.referencia"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seccion: Caracteristicas -->
+        <div class="form-section">
+          <div class="form-section-header" (click)="toggleSection('caracteristicas')">
+            <i class="bi bi-house-gear"></i><span>Características</span>
+            <i class="bi" [ngClass]="formSections().caracteristicas ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </div>
+          <div class="form-section-body" *ngIf="formSections().caracteristicas">
+            <div class="form-grid">
+              <div class="form-field"><label>Uso</label><input class="form-input" [(ngModel)]="formData.uso"></div>
+              <div class="form-field"><label>Estado</label><select class="form-input" [(ngModel)]="formData.estado"><option value="">Seleccione</option><option value="POSITIVO">Positivo</option><option value="NEGATIVO">Negativo</option><option value="INDECISO">Indeciso</option></select></div>
+              <div class="form-field full-width"><label>Servicios Básicos</label><input class="form-input" [(ngModel)]="formData.serviciosBasicos"></div>
+              <div class="form-field"><label>Area Terreno (m²)</label><input class="form-input" type="number" [(ngModel)]="formData.areaTerreno" step="0.01"></div>
+              <div class="form-field"><label>Frentes (m)</label><input class="form-input" type="number" [(ngModel)]="formData.frentes" step="0.01"></div>
+              <div class="form-field"><label>Nro Pisos</label><input class="form-input" type="number" [(ngModel)]="formData.nroPisos"></div>
+              <div class="form-field"><label>Area Construida (m²)</label><input class="form-input" type="number" [(ngModel)]="formData.areaConstruccion" step="0.01"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seccion: Dimensiones -->
+        <div class="form-section">
+          <div class="form-section-header" (click)="toggleSection('dimensiones')">
+            <i class="bi bi-arrows-fullscreen"></i><span>Dimensiones (linderos)</span>
+            <i class="bi" [ngClass]="formSections().dimensiones ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </div>
+          <div class="form-section-body" *ngIf="formSections().dimensiones">
+            <div class="form-grid form-grid-4">
+              <div class="form-field"><label>Norte (m)</label><input class="form-input" type="number" [(ngModel)]="formData.norte" step="0.01"></div>
+              <div class="form-field"><label>Sur (m)</label><input class="form-input" type="number" [(ngModel)]="formData.sur" step="0.01"></div>
+              <div class="form-field"><label>Este (m)</label><input class="form-input" type="number" [(ngModel)]="formData.este" step="0.01"></div>
+              <div class="form-field"><label>Oeste (m)</label><input class="form-input" type="number" [(ngModel)]="formData.oeste" step="0.01"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seccion: Ubicacion -->
+        <div class="form-section">
+          <div class="form-section-header" (click)="toggleSection('ubicacion')">
+            <i class="bi bi-geo-alt"></i><span>Ubicación</span>
+            <i class="bi" [ngClass]="formSections().ubicacion ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </div>
+          <div class="form-section-body" *ngIf="formSections().ubicacion">
+            <div class="form-grid">
+              <div class="form-field"><label>Latitud</label><input class="form-input" type="number" [(ngModel)]="formData.latitud" step="0.00000001"></div>
+              <div class="form-field"><label>Longitud</label><input class="form-input" type="number" [(ngModel)]="formData.longitud" step="0.00000001"></div>
+              <div class="form-field full-width">
+                <button class="btn-map-select" type="button" (click)="abrirMapaSelector()" title="Seleccionar ubicación en el mapa">
+                  <i class="bi bi-geo-alt"></i> Seleccionar en Mapa
+                </button>
+                <span class="map-select-hint" *ngIf="formData.latitud && formData.longitud">
+                  <i class="bi bi-check-circle-fill text-success"></i>
+                  Ubicación: {{ formData.latitud | number:'1.8-8' }}, {{ formData.longitud | number:'1.8-8' }}
+                </span>
+              </div>
+              <div class="form-field full-width">
+                <label>Polígono (WKT o GeoJSON)</label>
+                <textarea class="form-textarea" rows="3" [(ngModel)]="formData.poligonoGeoJSON" placeholder="MULTIPOLYGON (...) o GeoJSON del predio"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seccion: Observaciones -->
+        <div class="form-section">
+          <div class="form-section-header" (click)="toggleSection('observaciones')">
+            <i class="bi bi-chat-left-text"></i><span>Observaciones</span>
+            <i class="bi" [ngClass]="formSections().observaciones ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </div>
+          <div class="form-section-body" *ngIf="formSections().observaciones">
+            <div class="form-grid">
+              <div class="form-field full-width"><label>Observaciones</label><textarea class="form-textarea" rows="3" [(ngModel)]="formData.observaciones"></textarea></div>
+            </div>
+          </div>
+        </div>
+
       </div>
       <div class="modal-footer"><button class="btn-cancel" (click)="cerrarFormulario()">Cancelar</button><button class="btn-save" (click)="guardar()" [disabled]="saving()">{{ saving() ? 'Guardando...' : 'Guardar' }}</button></div>
     </div>
@@ -134,6 +209,16 @@
 
   <!-- Mapa Selector -->
 </div>
+<app-map-modal
+  *ngIf="showMapModal()"
+  [title]="mapModalData().title"
+  [geoJSON]="mapModalData().geoJSON"
+  [latitud]="mapModalData().latitud"
+  [longitud]="mapModalData().longitud"
+  [color]="mapModalData().color"
+  [itemName]="mapModalData().itemName"
+  (close)="closeMapModal()">
+</app-map-modal>
 <app-mapa-selector
   *ngIf="showMapaSelector()"
   mode="point"

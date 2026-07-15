@@ -16,6 +16,7 @@ public interface PredioService {
     Page<PredioDTO> buscar(String busqueda, Boolean activo, Pageable pageable);
     List<PredioDTO> listarPorManzana(Long idManzana);
     List<PredioDTO> listarTodos();
+    List<PredioDTO> listarTodosActivos();
     List<PredioDTO> listarConGeoreferencia();
     List<PredioDTO> listarPrediosSinVisitar(Long idManzana);
     byte[] exportarExcel(String busqueda);
