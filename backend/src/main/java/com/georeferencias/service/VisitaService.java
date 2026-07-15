@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public interface VisitaService {
     VisitaDTO crear(VisitaDTO dto);
     VisitaDTO actualizar(Long id, VisitaDTO dto);
@@ -24,6 +26,10 @@ public interface VisitaService {
     List<Map<String, Object>> obtenerVisitasPorUsuario(LocalDateTime inicio, LocalDateTime fin);
     List<Map<String, Object>> obtenerVisitasPorSector(LocalDateTime inicio, LocalDateTime fin);
     VisitaDTO obtenerUltimaVisitaPredio(Long idPredio);
+    int importarVisitas(MultipartFile file);
+    List<VisitaDTO> leerExcelBrigada(MultipartFile file);
+    Map<String, Object> confirmarImportacion(List<VisitaDTO> visitas, String sessionId);
+    byte[] generarReporteNoEncontrados(List<VisitaDTO> visitas);
     byte[] exportarExcel(LocalDateTime fechaInicio, LocalDateTime fechaFin);
     byte[] exportarPDF(LocalDateTime fechaInicio, LocalDateTime fechaFin);
 }

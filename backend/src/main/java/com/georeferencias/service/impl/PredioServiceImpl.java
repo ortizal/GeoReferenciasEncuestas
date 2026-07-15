@@ -1,5 +1,6 @@
 package com.georeferencias.service.impl;
 
+import com.georeferencias.dto.ImportProgressMessage;
 import com.georeferencias.dto.PredioDTO;
 import com.georeferencias.entity.Manzana;
 import com.georeferencias.entity.Predio;
@@ -17,6 +18,7 @@ import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,6 +33,7 @@ public class PredioServiceImpl implements PredioService {
 
     private final PredioRepository predioRepository;
     private final ManzanaRepository manzanaRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     private static final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -329,7 +332,7 @@ public class PredioServiceImpl implements PredioService {
 
     @Override
     @Transactional
-    public int importarExcel(MultipartFile file) {
+    public int importarExcel(MultipartFile file, String sessionId) {
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
 
@@ -370,7 +373,17 @@ public class PredioServiceImpl implements PredioService {
 
             java.util.List<Predio> batch = new java.util.ArrayList<>();
             int importados = 0;
+            int skipped = 0;
 
+            int totalRows = 0;
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+                String clave = getCellStringValue(row.getCell(claveCol >= 0 ? claveCol : 0));
+                if (clave != null && !clave.isBlank()) totalRows++;
+            }
+
+            int processed = 0;
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
@@ -380,14 +393,28 @@ public class PredioServiceImpl implements PredioService {
                 String direccion = getCellStringValue(row.getCell(direccionCol >= 0 ? direccionCol : 2));
                 String claveManzana = getCellStringValue(row.getCell(claveManzanaCol >= 0 ? claveManzanaCol : 3));
 
-                if (clave == null || clave.isBlank() || claveManzana == null || claveManzana.isBlank()) continue;
-                if (existingClaves.contains(clave)) continue;
+                if (clave == null || clave.isBlank() || claveManzana == null || claveManzana.isBlank()) {
+                    processed++;
+                    sendPredioProgress(sessionId, processed, totalRows, clave != null ? clave : "", "SKIP", importados, skipped, false);
+                    continue;
+                }
+                if (existingClaves.contains(clave)) {
+                    skipped++;
+                    processed++;
+                    sendPredioProgress(sessionId, processed, totalRows, clave, "DUPLICATE", importados, skipped, false);
+                    continue;
+                }
 
                 Manzana manzana = manzanaCache.get(claveManzana);
                 if (manzana == null && claveManzana.length() > 1 && claveManzana.startsWith("0")) {
                     manzana = manzanaCache.get(claveManzana.substring(1));
                 }
-                if (manzana == null) continue;
+                if (manzana == null) {
+                    skipped++;
+                    processed++;
+                    sendPredioProgress(sessionId, processed, totalRows, clave, "SKIP", importados, skipped, false);
+                    continue;
+                }
 
                 try {
                     Predio predio = new Predio();
@@ -448,15 +475,39 @@ public class PredioServiceImpl implements PredioService {
                         batch.clear();
                     }
                 } catch (Exception ignored) {}
+                processed++;
+                sendPredioProgress(sessionId, processed, totalRows, clave, "IMPORTED", importados, skipped, false);
             }
 
             if (!batch.isEmpty()) {
                 predioRepository.saveAll(batch);
             }
 
+            sendPredioProgress(sessionId, totalRows, totalRows, "", "COMPLETED", importados, skipped, true);
+
             return importados;
         } catch (Exception e) {
             throw new BadRequestException("Error al procesar Excel: " + e.getMessage());
+        }
+    }
+
+    private void sendPredioProgress(String sessionId, int current, int total, String rowKey, String rowStatus,
+                                    int imported, int skipped, boolean completed) {
+        if (sessionId == null || sessionId.isBlank()) return;
+        try {
+            ImportProgressMessage msg = ImportProgressMessage.builder()
+                    .sessionId(sessionId)
+                    .current(current)
+                    .total(total)
+                    .rowKey(rowKey)
+                    .rowStatus(rowStatus)
+                    .imported(imported)
+                    .duplicated(skipped)
+                    .completed(completed)
+                    .build();
+            messagingTemplate.convertAndSend("/topic/import-progress/" + sessionId, msg);
+        } catch (Exception e) {
+            // ignore
         }
     }
 

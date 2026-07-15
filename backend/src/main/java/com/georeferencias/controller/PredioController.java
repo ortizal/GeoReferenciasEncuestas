@@ -129,8 +129,10 @@ public class PredioController {
     @PostMapping("/importar/excel")
     @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('SUPERVISOR')")
     @Operation(summary = "Importar predios desde Excel")
-    public ResponseEntity<ApiResponse<String>> importarExcel(@RequestParam("file") MultipartFile file) {
-        int importados = predioService.importarExcel(file);
+    public ResponseEntity<ApiResponse<String>> importarExcel(
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "X-Import-Session", required = false) String sessionId) {
+        int importados = predioService.importarExcel(file, sessionId);
         return ResponseEntity.ok(ApiResponse.exito(
                 importados + " predios importados", "Importación completada"));
     }

@@ -59,4 +59,28 @@ export class VisitaService {
   contarPorEstado(): Observable<ApiResponse<any>> {
     return this.http.get<ApiResponse<any>>(`${this.apiUrl}/estadisticas`);
   }
+
+  previsualizarImportacion(file: File): Observable<ApiResponse<Visita[]>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ApiResponse<Visita[]>>(`${this.apiUrl}/importar/visitas`, formData);
+  }
+
+  confirmarImportacion(visitas: Visita[], sessionId: string): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.apiUrl}/importar/confirmar`, visitas, {
+      headers: sessionId ? { 'X-Import-Session': sessionId } : {}
+    });
+  }
+
+  descargarReporteNoEncontrados(visitas: Visita[]): Observable<Blob> {
+    return this.http.post(`${this.apiUrl}/importar/reporte-no-encontrados`, visitas, { responseType: 'blob' });
+  }
+
+  exportarExcel(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/exportar/excel`, { responseType: 'blob' });
+  }
+
+  exportarPDF(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/exportar/pdf`, { responseType: 'blob' });
+  }
 }

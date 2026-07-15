@@ -3,6 +3,7 @@ package com.georeferencias.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.georeferencias.dto.ImportPreviewDTO;
+import com.georeferencias.dto.ImportProgressMessage;
 import com.georeferencias.dto.ImportResultDTO;
 import com.georeferencias.dto.ManzanaDTO;
 import com.georeferencias.entity.Manzana;
@@ -25,6 +26,7 @@ import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.jts.io.WKTReader;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +43,7 @@ public class ManzanaServiceImpl implements ManzanaService {
 
     private final ManzanaRepository manzanaRepository;
     private final PredioRepository predioRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -480,7 +483,7 @@ public class ManzanaServiceImpl implements ManzanaService {
 
     @Override
     @Transactional
-    public ImportResultDTO importarExcel(MultipartFile file) {
+    public ImportResultDTO importarExcel(MultipartFile file, String sessionId) {
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
             List<ImportResultDTO.ImportRowResult> results = new ArrayList<>();
@@ -499,6 +502,15 @@ public class ManzanaServiceImpl implements ManzanaService {
             if (barrioCol < 0) barrioCol = 3;
             if (poligonoCol < 0) poligonoCol = 4;
 
+            int totalRows = 0;
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+                String clave = getCellStringValue(row.getCell(claveCol));
+                if (clave != null && !clave.isBlank()) totalRows++;
+            }
+
+            int processed = 0;
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
@@ -508,23 +520,15 @@ public class ManzanaServiceImpl implements ManzanaService {
 
                 if (clave == null || clave.isBlank()) {
                     errorCount++;
-                    results.add(ImportResultDTO.ImportRowResult.builder()
-                            .rowNum(i + 1)
-                            .claveCatastral("")
-                            .success(false)
-                            .error("Clave catastral es obligatoria")
-                            .build());
+                    processed++;
+                    sendManzanaProgress(sessionId, processed, totalRows, "", "ERROR", successCount, errorCount, false);
                     continue;
                 }
 
                 if (manzanaRepository.existsByClaveCatastralManzana(clave)) {
                     errorCount++;
-                    results.add(ImportResultDTO.ImportRowResult.builder()
-                            .rowNum(i + 1)
-                            .claveCatastral(clave)
-                            .success(false)
-                            .error("Clave catastral ya existe")
-                            .build());
+                    processed++;
+                    sendManzanaProgress(sessionId, processed, totalRows, clave, "DUPLICATE", successCount, errorCount, false);
                     continue;
                 }
 
@@ -559,7 +563,13 @@ public class ManzanaServiceImpl implements ManzanaService {
                             .error(e.getMessage())
                             .build());
                 }
+                processed++;
+                sendManzanaProgress(sessionId, processed, totalRows, clave, 
+                        results.get(results.size() - 1).isSuccess() ? "IMPORTED" : "ERROR", 
+                        successCount, errorCount, false);
             }
+
+            sendManzanaProgress(sessionId, totalRows, totalRows, "", "COMPLETED", successCount, errorCount, true);
 
             return ImportResultDTO.builder()
                     .totalRows(results.size())
@@ -569,6 +579,26 @@ public class ManzanaServiceImpl implements ManzanaService {
                     .build();
         } catch (Exception e) {
             throw new BadRequestException("Error al procesar Excel: " + e.getMessage());
+        }
+    }
+
+    private void sendManzanaProgress(String sessionId, int current, int total, String rowKey, String rowStatus,
+                                     int imported, int errors, boolean completed) {
+        if (sessionId == null || sessionId.isBlank()) return;
+        try {
+            ImportProgressMessage msg = ImportProgressMessage.builder()
+                    .sessionId(sessionId)
+                    .current(current)
+                    .total(total)
+                    .rowKey(rowKey)
+                    .rowStatus(rowStatus)
+                    .imported(imported)
+                    .errors(errors)
+                    .completed(completed)
+                    .build();
+            messagingTemplate.convertAndSend("/topic/import-progress/" + sessionId, msg);
+        } catch (Exception e) {
+            // ignore
         }
     }
 

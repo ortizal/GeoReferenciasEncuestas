@@ -60,4 +60,8 @@ public interface VisitaRepository extends JpaRepository<Visita, Long> {
            "GROUP BY v.predio.manzana.sector, v.estadoVisita")
     List<Object[]> countVisitasBySectorYEstado(@Param("inicio") LocalDateTime inicio,
                                                 @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT COUNT(v) > 0 FROM Visita v WHERE v.predio.idPredio = :idPredio AND v.fechaBrigada = :fechaBrigada")
+    boolean existsByPredioAndFechaBrigada(@Param("idPredio") Long idPredio,
+                                           @Param("fechaBrigada") LocalDateTime fechaBrigada);
 }

@@ -21,6 +21,6 @@ public interface PredioService {
     List<PredioDTO> listarPrediosSinVisitar(Long idManzana);
     byte[] exportarExcel(String busqueda);
     byte[] exportarPDF(String busqueda);
-    int importarExcel(MultipartFile file);
+    int importarExcel(MultipartFile file, String sessionId);
     byte[] descargarPlantillaExcel();
 }

@@ -38,4 +38,14 @@ public class VisitaDTO {
     private LocalTime horaFin;
     private Boolean viviendaTrabajable;
     private LocalDateTime fechaCreacion;
+
+    private String grupoBrigada;
+    private String nombreBrigada;
+    private LocalDateTime fechaBrigada;
+    private String comentarioBrigada;
+    private String numCasasBrigada;
+    private String parroquia;
+    private String barrio;
+    private Boolean apoyaAlcalde;
+    private Boolean estrella;
 }

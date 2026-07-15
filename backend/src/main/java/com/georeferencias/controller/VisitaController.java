@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -154,6 +155,35 @@ public class VisitaController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=visitas.pdf")
                 .contentType(MediaType.APPLICATION_PDF)
+                .body(datos);
+    }
+
+    @PostMapping("/importar/visitas")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'SUPERVISOR')")
+    @Operation(summary = "Vista previa de importación de visitas desde Excel")
+    public ResponseEntity<ApiResponse<List<VisitaDTO>>> previsualizarImportacion(@RequestParam("file") MultipartFile file) {
+        List<VisitaDTO> resultado = visitaService.leerExcelBrigada(file);
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Se encontraron " + resultado.size() + " registros"));
+    }
+
+    @PostMapping("/importar/confirmar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'SUPERVISOR')")
+    @Operation(summary = "Confirmar importación de visitas")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> confirmarImportacion(
+            @RequestBody List<VisitaDTO> visitas,
+            @RequestHeader(value = "X-Import-Session", required = false) String sessionId) {
+        Map<String, Object> resultado = visitaService.confirmarImportacion(visitas, sessionId);
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Importación completada"));
+    }
+
+    @PostMapping("/importar/reporte-no-encontrados")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'SUPERVISOR')")
+    @Operation(summary = "Descargar reporte de predios no encontrados")
+    public ResponseEntity<byte[]> reporteNoEncontrados(@RequestBody List<VisitaDTO> visitas) {
+        byte[] datos = visitaService.generarReporteNoEncontrados(visitas);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=predios_no_encontrados.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(datos);
     }
 }

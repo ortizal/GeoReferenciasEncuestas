@@ -56,6 +56,30 @@ public class Visita {
     @Column(nullable = false)
     private Boolean viviendaTrabajable;
 
+    @Column(length = 10)
+    private String grupoBrigada;
+
+    @Column(length = 100)
+    private String nombreBrigada;
+
+    private LocalDateTime fechaBrigada;
+
+    @Column(length = 200)
+    private String comentarioBrigada;
+
+    @Column(length = 50)
+    private String numCasasBrigada;
+
+    @Column(length = 100)
+    private String parroquia;
+
+    @Column(length = 100)
+    private String barrio;
+
+    private Boolean apoyaAlcalde;
+
+    private Boolean estrella;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime fechaCreacion;

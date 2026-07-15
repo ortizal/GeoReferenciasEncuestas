@@ -22,6 +22,6 @@ public interface ManzanaService {
     byte[] exportarExcel(String busqueda);
     byte[] exportarPDF(String busqueda);
     ImportPreviewDTO previewExcel(MultipartFile file);
-    ImportResultDTO importarExcel(MultipartFile file);
+    ImportResultDTO importarExcel(MultipartFile file, String sessionId);
     byte[] descargarPlantillaExcel();
 }

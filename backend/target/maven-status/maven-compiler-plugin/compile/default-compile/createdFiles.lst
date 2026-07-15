@@ -45,6 +45,7 @@ com/georeferencias/service/ManzanaService.class
 com/georeferencias/dto/UsuarioDTO$UsuarioDTOBuilder.class
 com/georeferencias/dto/LoginResponse$LoginResponseBuilder.class
 com/georeferencias/GeoReferenciasApplication.class
+com/georeferencias/service/impl/VisitaServiceImpl$1.class
 com/georeferencias/entity/Rol$RolBuilder.class
 com/georeferencias/exception/BadRequestException.class
 com/georeferencias/entity/Menu.class

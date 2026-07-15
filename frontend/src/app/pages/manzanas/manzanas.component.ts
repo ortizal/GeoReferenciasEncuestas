@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -6,6 +6,7 @@ import { ManzanaService } from '../../core/services/manzana.service';
 import { PredioService } from '../../core/services/predio.service';
 import { VisitaService } from '../../core/services/visita.service';
 import { AuthService } from '../../core/services/auth.service';
+import { WebSocketService, ImportProgress } from '../../core/services/websocket.service';
 import { Manzana, Predio } from '../../core/models/models';
 import { MapaSelectorComponent } from '../../shared/components/mapa-selector/mapa-selector.component';
 import { MapModalComponent } from '../../shared/components/map-modal/map-modal.component';
@@ -52,6 +53,10 @@ export class ManzanasComponent implements OnInit {
   previewLoading = signal(false);
   previewError = signal('');
   importResult: any = null;
+  importProgress = signal<ImportProgress>({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
+  importProgressPercent = signal(0);
+  rowStatusMap = signal<Map<string, string>>(new Map());
+  private unsubscribeProgress: (() => void) | null = null;
 
   paginaActual = 0;
   totalPaginas = 0;
@@ -63,9 +68,17 @@ export class ManzanasComponent implements OnInit {
     private predioService: PredioService,
     private visitaService: VisitaService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private wsService: WebSocketService
   ) {}
   ngOnInit() { this.buscar(); }
+
+  ngOnDestroy() {
+    if (this.unsubscribeProgress) {
+      this.unsubscribeProgress();
+      this.unsubscribeProgress = null;
+    }
+  }
 
   buscar() {
     this.manzanaService.buscar(this.busqueda, this.filtroActivo, this.paginaActual, this.tamanoPagina).subscribe({
@@ -210,8 +223,13 @@ export class ManzanasComponent implements OnInit {
   }
   eliminar(m: Manzana) { if (confirm(`¿Eliminar manzana ${m.nombre}?`)) this.manzanaService.eliminar(m.idManzana!).subscribe({ next: () => this.buscar() }); }
 
-  abrirImportar() { this.archivoSeleccionado.set(false); this.archivoNombre.set(''); this.resultadoImportacion.set(''); this.previewData = null; this.importResult = null; this.previewError.set(''); this.showImportar.set(true); }
-  cerrarImportar() { this.showImportar.set(false); this.previewData = null; this.importResult = null; }
+  abrirImportar() { this.archivoSeleccionado.set(false); this.archivoNombre.set(''); this.resultadoImportacion.set(''); this.previewData = null; this.importResult = null; this.previewError.set(''); this.rowStatusMap.set(new Map()); this.importProgressPercent.set(0); this.showImportar.set(true); }
+  cerrarImportar() { this.showImportar.set(false); this.previewData = null; this.importResult = null; if (this.unsubscribeProgress) { this.unsubscribeProgress(); this.unsubscribeProgress = null; } }
+
+  getRowStatus(clave: string): string | undefined {
+    if (!clave) return undefined;
+    return this.rowStatusMap().get(clave);
+  }
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
@@ -248,7 +266,30 @@ export class ManzanasComponent implements OnInit {
   importarExcel() {
     if (!this.archivoFile) return;
     this.importando.set(true);
-    this.manzanaService.importarExcel(this.archivoFile).subscribe({
+    this.importProgressPercent.set(0);
+    this.rowStatusMap.set(new Map());
+
+    const sessionId = 'manzanas-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+
+    this.unsubscribeProgress = this.wsService.subscribeToImportProgress(sessionId, (msg) => {
+      this.importProgress.set(msg);
+      if (msg.total > 0) {
+        this.importProgressPercent.set(Math.round((msg.current / msg.total) * 100));
+      }
+      if (msg.rowKey && msg.rowStatus && msg.rowStatus !== 'COMPLETED') {
+        this.rowStatusMap.update(map => {
+          const newMap = new Map(map);
+          newMap.set(msg.rowKey, msg.rowStatus);
+          return newMap;
+        });
+      }
+      if (msg.completed) {
+        this.importando.set(false);
+        if (this.unsubscribeProgress) { this.unsubscribeProgress(); this.unsubscribeProgress = null; }
+      }
+    });
+
+    this.manzanaService.importarExcel(this.archivoFile, sessionId).subscribe({
       next: (r) => {
         this.importando.set(false);
         if (r.exitoso) {
@@ -258,10 +299,12 @@ export class ManzanasComponent implements OnInit {
         } else {
           this.previewError.set(r.mensaje || 'Error al importar');
         }
+        if (this.unsubscribeProgress) { this.unsubscribeProgress(); this.unsubscribeProgress = null; }
       },
       error: () => {
         this.importando.set(false);
         this.previewError.set('Error al importar');
+        if (this.unsubscribeProgress) { this.unsubscribeProgress(); this.unsubscribeProgress = null; }
       }
     });
   }

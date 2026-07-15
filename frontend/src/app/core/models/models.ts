@@ -98,6 +98,15 @@ export interface Visita {
   horaFin?: string;
   viviendaTrabajable?: boolean;
   fechaCreacion?: string;
+  grupoBrigada?: string;
+  nombreBrigada?: string;
+  fechaBrigada?: string;
+  comentarioBrigada?: string;
+  numCasasBrigada?: string;
+  parroquia?: string;
+  barrio?: string;
+  apoyaAlcalde?: boolean;
+  estrella?: boolean;
 }
 
 export interface Dashboard {

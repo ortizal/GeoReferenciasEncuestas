@@ -45,10 +45,12 @@ export class ManzanaService {
     return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/${id}`);
   }
 
-  importarExcel(file: File): Observable<ApiResponse<any>> {
+  importarExcel(file: File, sessionId: string): Observable<ApiResponse<any>> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<ApiResponse<any>>(`${this.apiUrl}/importar/excel`, formData);
+    return this.http.post<ApiResponse<any>>(`${this.apiUrl}/importar/excel`, formData, {
+      headers: sessionId ? { 'X-Import-Session': sessionId } : {}
+    });
   }
 
   previewExcel(file: File): Observable<ApiResponse<any>> {

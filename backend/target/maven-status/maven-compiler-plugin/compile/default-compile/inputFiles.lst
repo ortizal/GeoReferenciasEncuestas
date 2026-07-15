@@ -12,6 +12,7 @@
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/CambioContrasenaRequest.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/DashboardDTO.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/ImportPreviewDTO.java
+/run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/ImportProgressMessage.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/ImportResultDTO.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/LoginRequest.java
 /run/media/ortizal/ObejaDev/PROYECTOS/PERSONAL/GeoReferenciasEncuestas/backend/src/main/java/com/georeferencias/dto/LoginResponse.java

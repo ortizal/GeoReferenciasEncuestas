@@ -126,21 +126,50 @@
             <span class="stat success"><strong>{{ previewData.validRows }}</strong> validas</span>
             <span class="stat warning" *ngIf="previewData.duplicateRows > 0"><strong>{{ previewData.duplicateRows }}</strong> duplicadas</span>
           </div>
+
+          <div class="import-progress-bar" *ngIf="importando()">
+            <div class="progress-info">
+              <span class="progress-text">Importando {{ importProgress().current }} de {{ importProgress().total }}...</span>
+              <span class="progress-counts">
+                <span class="count-ok"><i class="bi bi-check-circle-fill"></i> {{ importProgress().imported }}</span>
+                <span class="count-err" *ngIf="importProgress().errors > 0"><i class="bi bi-x-circle-fill"></i> {{ importProgress().errors }}</span>
+              </span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill-bar" [style.width.%]="importProgressPercent()"></div>
+            </div>
+          </div>
+
           <div class="preview-table-wrap">
             <table class="table-premium table-preview">
               <thead>
                 <tr>
+                  <th *ngIf="importando()" class="col-status">Estado</th>
                   <th>Fila</th>
                   <th>Clave</th>
                   <th>Nombre</th>
                   <th>Sector</th>
                   <th>Barrio</th>
                   <th>Polígono</th>
-                  <th>Estado</th>
+                  <th>Resultado</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let row of previewData.rows" [class.row-error]="!row.valid" [class.row-duplicate]="row.duplicate">
+                <tr *ngFor="let row of previewData.rows"
+                    [class.row-error]="!row.valid && !importando()"
+                    [class.row-duplicate]="row.duplicate && !importando()"
+                    [class.row-imported]="getRowStatus(row.claveCatastral) === 'IMPORTED'"
+                    [class.row-dup-ws]="getRowStatus(row.claveCatastral) === 'DUPLICATE'"
+                    [class.row-error-ws]="getRowStatus(row.claveCatastral) === 'ERROR'">
+                  <td *ngIf="importando()" class="col-status">
+                    <i class="bi row-icon" *ngIf="getRowStatus(row.claveCatastral)"
+                       [ngClass]="{
+                         'bi-check-circle-fill text-success': getRowStatus(row.claveCatastral) === 'IMPORTED',
+                         'bi-copy text-warning': getRowStatus(row.claveCatastral) === 'DUPLICATE',
+                         'bi-x-circle-fill text-danger': getRowStatus(row.claveCatastral) === 'ERROR'
+                       }"></i>
+                    <i class="bi bi-hourglass-split text-muted" *ngIf="!getRowStatus(row.claveCatastral)"></i>
+                  </td>
                   <td>{{ row.rowNum }}</td>
                   <td><code class="cell-code">{{ row.claveCatastral }}</code></td>
                   <td>{{ row.nombre }}</td>
@@ -148,9 +177,13 @@
                   <td>{{ row.barrio || '—' }}</td>
                   <td>{{ row.poligonoGeoJSON ? 'Si' : '—' }}</td>
                   <td>
-                    <span *ngIf="row.valid" class="badge-premium badge-success">Valido</span>
-                    <span *ngIf="row.duplicate" class="badge-premium badge-warning" [title]="row.error">Duplicado</span>
-                    <span *ngIf="!row.valid && !row.duplicate" class="badge-premium badge-danger" [title]="row.error">Error</span>
+                    <span *ngIf="!importando() && row.valid" class="badge-premium badge-success">Valido</span>
+                    <span *ngIf="!importando() && row.duplicate" class="badge-premium badge-warning" [title]="row.error">Duplicado</span>
+                    <span *ngIf="!importando() && !row.valid && !row.duplicate" class="badge-premium badge-danger" [title]="row.error">Error</span>
+                    <span *ngIf="importando() && getRowStatus(row.claveCatastral) === 'IMPORTED'" class="badge-premium badge-success">Importado</span>
+                    <span *ngIf="importando() && getRowStatus(row.claveCatastral) === 'DUPLICATE'" class="badge-premium badge-warning">Duplicado</span>
+                    <span *ngIf="importando() && getRowStatus(row.claveCatastral) === 'ERROR'" class="badge-premium badge-danger">Error</span>
+                    <span *ngIf="importando() && !getRowStatus(row.claveCatastral)" class="badge-premium badge-neutral">Pendiente</span>
                   </td>
                 </tr>
               </tbody>

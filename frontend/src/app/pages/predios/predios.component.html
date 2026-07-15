@@ -192,7 +192,19 @@
         </div>
         <div class="import-progress" *ngIf="importando()">
           <div class="progress-bar"><div class="progress-fill"></div></div>
-          <span>Importando...</span>
+          <span>Importando {{ importProgress().current }} de {{ importProgress().total }}...</span>
+        </div>
+        <div class="import-progress-bar" *ngIf="importando()">
+          <div class="progress-info">
+            <span class="progress-text">{{ importProgress().current }} / {{ importProgress().total }}</span>
+            <span class="progress-counts">
+              <span class="count-ok"><i class="bi bi-check-circle-fill"></i> {{ importProgress().imported }}</span>
+              <span class="count-dup" *ngIf="importProgress().duplicated > 0"><i class="bi bi-copy"></i> {{ importProgress().duplicated }}</span>
+            </span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill-bar" [style.width.%]="importProgressPercent()"></div>
+          </div>
         </div>
         <div class="import-result" *ngIf="resultadoImportacion()">
           <i class="bi bi-check-circle-fill text-success"></i> {{ resultadoImportacion() }}

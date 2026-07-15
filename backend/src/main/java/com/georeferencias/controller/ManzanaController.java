@@ -125,8 +125,10 @@ public class ManzanaController {
     @PostMapping("/importar/excel")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @Operation(summary = "Importar manzanas desde Excel")
-    public ResponseEntity<ApiResponse<ImportResultDTO>> importarExcel(@RequestParam("file") MultipartFile file) {
-        ImportResultDTO resultado = manzanaService.importarExcel(file);
+    public ResponseEntity<ApiResponse<ImportResultDTO>> importarExcel(
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "X-Import-Session", required = false) String sessionId) {
+        ImportResultDTO resultado = manzanaService.importarExcel(file, sessionId);
         String mensaje = String.format("%d éxitos, %d errores de %d filas",
                 resultado.getSuccessCount(), resultado.getErrorCount(), resultado.getTotalRows());
         return ResponseEntity.ok(ApiResponse.exito(resultado, mensaje));

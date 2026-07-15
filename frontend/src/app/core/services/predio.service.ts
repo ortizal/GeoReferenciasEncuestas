@@ -57,10 +57,12 @@ export class PredioService {
     return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/${id}`);
   }
 
-  importarExcel(file: File): Observable<ApiResponse<string>> {
+  importarExcel(file: File, sessionId: string): Observable<ApiResponse<string>> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<ApiResponse<string>>(`${this.apiUrl}/importar/excel`, formData);
+    return this.http.post<ApiResponse<string>>(`${this.apiUrl}/importar/excel`, formData, {
+      headers: sessionId ? { 'X-Import-Session': sessionId } : {}
+    });
   }
 
   descargarPlantilla(): Observable<Blob> {

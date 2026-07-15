@@ -1,9 +1,10 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PredioService } from '../../core/services/predio.service';
 import { ManzanaService } from '../../core/services/manzana.service';
+import { WebSocketService, ImportProgress } from '../../core/services/websocket.service';
 import { Predio, Manzana } from '../../core/models/models';
 import { MapaSelectorComponent } from '../../shared/components/mapa-selector/mapa-selector.component';
 import { MapModalComponent } from '../../shared/components/map-modal/map-modal.component';
@@ -46,13 +47,24 @@ export class PrediosComponent implements OnInit {
   showMapModal = signal(false);
   mapModalData = signal<{ title: string; geoJSON: string | null; latitud: number | null; longitud: number | null; color: string; itemName: string }>({ title: '', geoJSON: null, latitud: null, longitud: null, color: '#adb5bd', itemName: '' });
 
+  importProgress = signal<ImportProgress>({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
+  importProgressPercent = signal(0);
+  private unsubscribeProgress: (() => void) | null = null;
+
   paginaActual = 0;
   totalPaginas = 0;
   totalRegistros = 0;
   tamanoPagina = 20;
 
-  constructor(private predioService: PredioService, private manzanaService: ManzanaService, private router: Router) {}
+  constructor(private predioService: PredioService, private manzanaService: ManzanaService, private router: Router, private wsService: WebSocketService) {}
   ngOnInit() { this.loadManzanas(); this.buscar(); }
+
+  ngOnDestroy() {
+    if (this.unsubscribeProgress) {
+      this.unsubscribeProgress();
+      this.unsubscribeProgress = null;
+    }
+  }
 
   loadManzanas() { this.manzanaService.listarTodas().subscribe({ next: (r) => { if (r.exitoso) this.manzanas.set(r.datos || []); } }); }
   buscar() {
@@ -104,10 +116,42 @@ export class PrediosComponent implements OnInit {
   eliminar(p: Predio) { if (confirm(`¿Eliminar predio ${p.claveCatastral}?`)) this.predioService.eliminar(p.idPredio!).subscribe({ next: () => this.buscar() }); }
   getEstadoBadge(estado?: string): string { switch (estado) { case 'POSITIVO': return 'badge-success'; case 'NEGATIVO': return 'badge-danger'; case 'INDECISO': return 'badge-warning'; default: return 'badge-neutral'; } }
 
-  abrirImportar() { this.archivoSeleccionado.set(false); this.archivoNombre.set(''); this.resultadoImportacion.set(''); this.showImportar.set(true); }
-  cerrarImportar() { this.showImportar.set(false); }
+  abrirImportar() { this.archivoSeleccionado.set(false); this.archivoNombre.set(''); this.resultadoImportacion.set(''); this.importProgressPercent.set(0); this.showImportar.set(true); }
+  cerrarImportar() { this.showImportar.set(false); if (this.unsubscribeProgress) { this.unsubscribeProgress(); this.unsubscribeProgress = null; } }
   onFileSelected(event: Event) { const input = event.target as HTMLInputElement; if (input.files && input.files.length > 0) { this.archivoFile = input.files[0]; this.archivoNombre.set(input.files[0].name); this.archivoSeleccionado.set(true); } }
-  importarExcel() { if (!this.archivoFile) return; this.importando.set(true); this.predioService.importarExcel(this.archivoFile).subscribe({ next: (r) => { this.importando.set(false); this.resultadoImportacion.set(r.mensaje || 'Importación completada'); this.archivoSeleccionado.set(false); this.buscar(); }, error: () => { this.importando.set(false); this.resultadoImportacion.set('Error al importar'); } }); }
+  importarExcel() {
+    if (!this.archivoFile) return;
+    this.importando.set(true);
+    this.importProgressPercent.set(0);
+
+    const sessionId = 'predios-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+
+    this.unsubscribeProgress = this.wsService.subscribeToImportProgress(sessionId, (msg) => {
+      this.importProgress.set(msg);
+      if (msg.total > 0) {
+        this.importProgressPercent.set(Math.round((msg.current / msg.total) * 100));
+      }
+      if (msg.completed) {
+        this.importando.set(false);
+        if (this.unsubscribeProgress) { this.unsubscribeProgress(); this.unsubscribeProgress = null; }
+      }
+    });
+
+    this.predioService.importarExcel(this.archivoFile, sessionId).subscribe({
+      next: (r) => {
+        this.importando.set(false);
+        this.resultadoImportacion.set(r.mensaje || 'Importación completada');
+        this.archivoSeleccionado.set(false);
+        this.buscar();
+        if (this.unsubscribeProgress) { this.unsubscribeProgress(); this.unsubscribeProgress = null; }
+      },
+      error: () => {
+        this.importando.set(false);
+        this.resultadoImportacion.set('Error al importar');
+        if (this.unsubscribeProgress) { this.unsubscribeProgress(); this.unsubscribeProgress = null; }
+      }
+    });
+  }
 
   descargarPlantilla() { this.predioService.descargarPlantilla().subscribe({ next: (blob) => { const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'plantilla_predios.xlsx'; a.click(); window.URL.revokeObjectURL(url); }, error: () => alert('Error al descargar la plantilla. Verifique que el backend esté corriendo.') }); }
 
