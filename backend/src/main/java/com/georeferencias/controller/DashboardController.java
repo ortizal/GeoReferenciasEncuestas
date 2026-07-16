@@ -53,4 +53,18 @@ public class DashboardController {
         DashboardDTO resultado = dashboardService.obtenerDashboardPorManzana(idManzana);
         return ResponseEntity.ok(ApiResponse.exito(resultado, "Dashboard obtenido"));
     }
+
+    @GetMapping("/top-manzanas-positivos")
+    @Operation(summary = "Top manzanas con más visitas positivas")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> topManzanasPositivos() {
+        List<Map<String, Object>> resultado = dashboardService.topManzanasByPositivos();
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Top manzanas obtenidas"));
+    }
+
+    @GetMapping("/top-manzanas-ar-estrellas")
+    @Operation(summary = "Top manzanas con más apoyos alcalde y estrellas")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> topManzanasArEstrellas() {
+        List<Map<String, Object>> resultado = dashboardService.topManzanasByArEstrellas();
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Top manzanas AR/Estrellas obtenidas"));
+    }
 }

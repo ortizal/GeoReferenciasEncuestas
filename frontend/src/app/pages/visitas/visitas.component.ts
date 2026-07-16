@@ -24,20 +24,38 @@ import { Visita } from '../../core/models/models';
               <button class="dropdown-item" (click)="abrirImportar()"><i class="bi bi-upload"></i> Importar Excel</button>
               <button class="dropdown-item" (click)="exportarExcel()"><i class="bi bi-file-earmark-excel"></i> Exportar Excel</button>
               <button class="dropdown-item" (click)="exportarPDF()"><i class="bi bi-file-earmark-pdf"></i> Exportar PDF</button>
-            </div>
+          </div>
+        </div>
+        <!-- Pagination -->
+        <div class="pagination-bar" *ngIf="totalPages() > 1">
+          <span class="pagination-info">Mostrando {{ currentPage() * pageSize() + 1 }}–{{ Math.min((currentPage() + 1) * pageSize(), totalElements()) }} de {{ totalElements() }}</span>
+          <div class="pagination-controls">
+            <button class="page-btn" (click)="goToPage(0)" [disabled]="currentPage() === 0"><i class="bi bi-chevron-double-left"></i></button>
+            <button class="page-btn" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 0"><i class="bi bi-chevron-left"></i></button>
+            <span class="page-info">{{ currentPage() + 1 }} / {{ totalPages() }}</span>
+            <button class="page-btn" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() >= totalPages() - 1"><i class="bi bi-chevron-right"></i></button>
+            <button class="page-btn" (click)="goToPage(totalPages() - 1)" [disabled]="currentPage() >= totalPages() - 1"><i class="bi bi-chevron-double-right"></i></button>
           </div>
         </div>
       </div>
+      </div>
       <div class="card-premium">
         <div class="filter-bar">
-          <select class="filter-select" [(ngModel)]="filtroEstado" (change)="buscar()"><option value="">Todos los estados</option><option value="POSITIVO">Positivo</option><option value="NEGATIVO">Negativo</option><option value="INDECISO">Indeciso</option><option value="PENDIENTE">Pendiente</option></select>
-          <div class="search-box"><i class="bi bi-search"></i><input type="text" placeholder="Buscar..." [(ngModel)]="busqueda" (keyup.enter)="buscar()"></div>
+          <select class="filter-select" [(ngModel)]="filtroEstado" (change)="buscar()"><option value="">Todos los estados</option><option value="POSITIVO">Positivo</option><option value="NEGATIVO">Negativo</option><option value="INDECISO">Indeciso</option><option value="PENDIENTE">Pendiente</option><option value="NO_TRABAJABLE">No Trabajable</option><option value="EN_BLANCO">En Blanco</option></select>
+          <div class="date-filter"><label>Desde:</label><input type="date" [(ngModel)]="fechaDesde" (change)="buscar()" autocomplete="off"></div>
+          <div class="date-filter"><label>Hasta:</label><input type="date" [(ngModel)]="fechaHasta" (change)="buscar()" autocomplete="off"></div>
+          <div class="search-box"><i class="bi bi-search"></i><input type="text" placeholder="Buscar..." [(ngModel)]="busqueda" (keyup.enter)="buscar()" autocomplete="off"></div>
         </div>
         <div class="card-premium-body no-padding">
           <div class="table-responsive">
             <table class="table-premium">
               <thead><tr>
-                <th>Predio</th><th>Propietario</th><th>Estado</th><th>Brigada</th><th>Grupo</th><th>Parroquia</th><th>Barrio</th><th>AR</th><th>Estrella</th><th>Fecha</th><th></th>
+                <th class="sortable" (click)="toggleSort('predio.claveCatastral')">Predio <i class="bi" [ngClass]="sortIcon('predio.claveCatastral')"></i></th>
+                <th>Propietario</th>
+                <th class="sortable" (click)="toggleSort('estadoVisita')">Estado <i class="bi" [ngClass]="sortIcon('estadoVisita')"></i></th>
+                <th>Brigada</th><th>Grupo</th><th>Parroquia</th><th>Barrio</th><th>AR</th><th>Estrella</th>
+                <th class="sortable" (click)="toggleSort('fechaVisita')">Fecha <i class="bi" [ngClass]="sortIcon('fechaVisita')"></i></th>
+                <th></th>
               </tr></thead>
               <tbody>
                 <tr *ngFor="let v of visitas()">
@@ -238,7 +256,15 @@ import { Visita } from '../../core/models/models';
     .dropdown-item { display: flex; align-items: center; gap: var(--space-2); }
     .dropdown-item i { width: 16px; text-align: center; color: var(--text-secondary); }
     .card-premium { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-xl); box-shadow: var(--shadow-xs); }
-    .filter-bar { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-light); }
+    .filter-bar { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-light); flex-wrap: wrap; }
+    .date-filter { display: flex; align-items: center; gap: 4px; font-size: var(--text-xs); color: var(--text-secondary); }
+    .date-filter input[type="date"] { height: 36px; padding: 0 var(--space-2); border: 1px solid var(--border-default); border-radius: var(--radius-md); font-size: var(--text-xs); background: var(--bg-surface); color: var(--text-primary); }
+    .sortable { cursor: pointer; user-select: none; &:hover { color: var(--primary-600); } i { font-size: 0.625rem; margin-left: 2px; } }
+    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border-light); }
+    .pagination-info { font-size: var(--text-xs); color: var(--text-secondary); }
+    .pagination-controls { display: flex; align-items: center; gap: var(--space-2); }
+    .page-btn { width: 32px; height: 32px; border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); &:hover:not(:disabled) { background: var(--bg-hover); } &:disabled { opacity: 0.4; cursor: not-allowed; } }
+    .page-info { font-size: var(--text-xs); color: var(--text-secondary); padding: 0 var(--space-2); }
     .search-box { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); background: var(--neutral-50); border: 1px solid var(--border-light); border-radius: var(--radius-md); height: 36px; min-width: 240px; &:focus-within { border-color: var(--border-focus); background: var(--bg-surface); } i { color: var(--text-tertiary); } input { flex: 1; border: none; background: transparent; font-size: var(--text-sm); outline: none; color: var(--text-primary); &::placeholder { color: var(--text-tertiary); } } }
     .filter-select { height: 36px; padding: 0 var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--text-primary); background: var(--bg-surface); outline: none; }
     .card-premium-body { padding: 0; }
@@ -314,10 +340,33 @@ export class VisitasComponent implements OnInit, OnDestroy {
   rowStatusMap = signal<Map<string, string>>(new Map());
   importProgressPercent = signal(0);
 
+  fechaDesde = '';
+  fechaHasta = '';
+  currentPage = signal(0);
+  pageSize = signal(20);
+  totalElements = signal(0);
+  totalPages = signal(0);
+  sortField = signal('fechaVisita');
+  sortDir = signal<'asc'|'desc'>('desc');
+  Math = Math;
+
   private unsubscribeProgress: (() => void) | null = null;
 
   constructor(private visitaService: VisitaService, private wsService: WebSocketService) {}
-  ngOnInit() { this.buscar(); }
+  ngOnInit() {
+    const hoy = new Date();
+    const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    this.fechaDesde = this.formatDate(primerDiaMes);
+    this.fechaHasta = this.formatDate(hoy);
+    this.buscar();
+  }
+
+  private formatDate(fecha: Date): string {
+    const y = fecha.getFullYear();
+    const m = String(fecha.getMonth() + 1).padStart(2, '0');
+    const d = String(fecha.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
 
   ngOnDestroy() {
     if (this.unsubscribeProgress) {
@@ -326,7 +375,42 @@ export class VisitasComponent implements OnInit, OnDestroy {
     }
   }
 
-  buscar() { this.visitaService.buscar(this.busqueda).subscribe({ next: (r) => { if (r.exitoso) this.visitas.set(r.datos?.content || []); } }); }
+  buscar() {
+    this.visitaService.buscar(
+      this.busqueda, this.currentPage(), this.pageSize(), this.filtroEstado,
+      this.fechaDesde, this.fechaHasta, this.sortField(), this.sortDir()
+    ).subscribe({
+      next: (r) => {
+        if (r.exitoso && r.datos) {
+          this.visitas.set(r.datos.content || []);
+          this.totalElements.set(r.datos.totalElements || 0);
+          this.totalPages.set(r.datos.totalPages || 0);
+        }
+      }
+    });
+  }
+
+  toggleSort(field: string) {
+    if (this.sortField() === field) {
+      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(field);
+      this.sortDir.set('asc');
+    }
+    this.currentPage.set(0);
+    this.buscar();
+  }
+
+  sortIcon(field: string): string {
+    if (this.sortField() !== field) return 'bi-arrow-down-up';
+    return this.sortDir() === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down';
+  }
+
+  goToPage(page: number) {
+    if (page < 0 || page >= this.totalPages()) return;
+    this.currentPage.set(page);
+    this.buscar();
+  }
   verDetalles(v: Visita) { this.visitaSeleccionada = v; this.showDetalles.set(true); }
   cerrarDetalles() { this.showDetalles.set(false); this.visitaSeleccionada = null; }
   getEstadoBadge(estado?: string): string { switch (estado) { case 'POSITIVO': return 'badge-success'; case 'NEGATIVO': return 'badge-danger'; case 'INDECISO': return 'badge-warning'; case 'PENDIENTE': return 'badge-info'; default: return 'badge-neutral'; } }

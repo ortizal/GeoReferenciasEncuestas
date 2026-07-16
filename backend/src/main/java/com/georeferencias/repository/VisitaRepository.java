@@ -65,6 +65,26 @@ public interface VisitaRepository extends JpaRepository<Visita, Long> {
     boolean existsByPredioAndFechaBrigada(@Param("idPredio") Long idPredio,
                                            @Param("fechaBrigada") LocalDateTime fechaBrigada);
 
+    @Query("SELECT v FROM Visita v WHERE " +
+           "(:busqueda IS NULL OR :busqueda = '' OR " +
+           "LOWER(v.predio.claveCatastral) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
+           "LOWER(v.predio.propietario) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
+           "LOWER(v.predio.manzana.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%'))) " +
+           "AND (:estado IS NULL OR :estado = '' OR FUNCTION('name', v.estadoVisita) = :estado) " +
+           "AND (:desde IS NULL OR v.fechaVisita >= :desde) " +
+           "AND (:hasta IS NULL OR v.fechaVisita <= :hasta)")
+    Page<Visita> buscarConFiltros(@Param("busqueda") String busqueda,
+                                   @Param("estado") String estado,
+                                   @Param("desde") LocalDateTime desde,
+                                   @Param("hasta") LocalDateTime hasta,
+                                   Pageable pageable);
+
+    @Query("SELECT COUNT(v) FROM Visita v WHERE v.apoyaAlcalde = true")
+    Long countApoyaAlcalde();
+
+    @Query("SELECT COUNT(v) FROM Visita v WHERE v.estrella = true")
+    Long countEstrellas();
+
     @Query("SELECT FUNCTION('DATE', v.fechaCreacion) as fecha, v.estadoVisita, COUNT(v) " +
            "FROM Visita v " +
            "WHERE v.fechaCreacion BETWEEN :inicio AND :fin " +
@@ -72,4 +92,21 @@ public interface VisitaRepository extends JpaRepository<Visita, Long> {
            "ORDER BY FUNCTION('DATE', v.fechaCreacion)")
     List<Object[]> countVisitasByDiaYEstado(@Param("inicio") LocalDateTime inicio,
                                              @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT v.predio.manzana.idManzana, v.predio.manzana.nombre, COUNT(v) as total " +
+           "FROM Visita v WHERE v.estadoVisita = com.georeferencias.enums.EstadoVisita.POSITIVO " +
+           "AND v.predio.manzana IS NOT NULL " +
+           "GROUP BY v.predio.manzana.idManzana, v.predio.manzana.nombre " +
+           "ORDER BY total DESC")
+    List<Object[]> topManzanasByPositivos();
+
+    @Query("SELECT v.predio.manzana.idManzana, v.predio.manzana.nombre, " +
+           "SUM(CASE WHEN v.apoyaAlcalde = true THEN 1 ELSE 0 END) as arCount, " +
+           "SUM(CASE WHEN v.estrella = true THEN 1 ELSE 0 END) as estrellaCount, " +
+           "(SUM(CASE WHEN v.apoyaAlcalde = true THEN 1 ELSE 0 END) + SUM(CASE WHEN v.estrella = true THEN 1 ELSE 0 END)) as total " +
+           "FROM Visita v WHERE v.predio.manzana IS NOT NULL " +
+           "AND (v.apoyaAlcalde = true OR v.estrella = true) " +
+           "GROUP BY v.predio.manzana.idManzana, v.predio.manzana.nombre " +
+           "ORDER BY total DESC")
+    List<Object[]> topManzanasByArEstrellas();
 }

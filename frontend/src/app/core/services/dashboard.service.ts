@@ -30,4 +30,12 @@ export class DashboardService {
   obtenerDashboardPorManzana(idManzana: number): Observable<ApiResponse<Dashboard>> {
     return this.http.get<ApiResponse<Dashboard>>(`${this.apiUrl}/manzana/${idManzana}`);
   }
+
+  topManzanasPositivos(): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/top-manzanas-positivos`);
+  }
+
+  topManzanasArEstrellas(): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/top-manzanas-ar-estrellas`);
+  }
 }

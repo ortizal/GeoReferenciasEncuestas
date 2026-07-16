@@ -79,6 +79,8 @@ export interface Predio {
   estadoVisita?: string;
   fechaUltimaVisita?: string;
   totalVisitas?: number;
+  apoyaAlcalde?: boolean;
+  estrella?: boolean;
 }
 
 export interface Visita {
@@ -122,6 +124,8 @@ export interface Dashboard {
   noTrabajables: number;
   rechazadas: number;
   finalizadas: number;
+  apoyosAlcalde: number;
+  estrellas: number;
   porcentajeCobertura: number;
   visitasPorEstado: any[];
   visitasPorMes: any[];

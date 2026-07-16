@@ -25,6 +25,8 @@ public class DashboardDTO {
     private Long noTrabajables;
     private Long rechazadas;
     private Long finalizadas;
+    private Long apoyosAlcalde;
+    private Long estrellas;
     private Double porcentajeCobertura;
     private List<Map<String, Object>> visitasPorEstado;
     private List<Map<String, Object>> visitasPorMes;

@@ -32,13 +32,13 @@ import { AuthService } from '../../core/services/auth.service';
             <p>Ingrese sus credenciales para acceder al sistema</p>
           </div>
 
-          <form (ngSubmit)="onSubmit()" class="login-form">
+          <form (ngSubmit)="onSubmit()" class="login-form" autocomplete="off">
             <div class="form-field">
               <label for="username">Usuario</label>
               <div class="field-input" [class.error]="errors().username">
                 <i class="bi bi-person"></i>
                 <input type="text" id="username" [(ngModel)]="username" name="username"
-                  placeholder="Ingrese su usuario" autocomplete="username">
+                  placeholder="Ingrese su usuario" autocomplete="off">
               </div>
               <span class="field-error" *ngIf="errors().username">{{ errors().username }}</span>
             </div>
@@ -48,7 +48,7 @@ import { AuthService } from '../../core/services/auth.service';
               <div class="field-input" [class.error]="errors().password">
                 <i class="bi bi-lock"></i>
                 <input [type]="showPassword() ? 'text' : 'password'" id="password"
-                  [(ngModel)]="password" name="password" placeholder="Ingrese su contraseña" autocomplete="current-password">
+                  [(ngModel)]="password" name="password" placeholder="Ingrese su contraseña" autocomplete="new-password">
                 <button type="button" class="pw-toggle" (click)="showPassword.set(!showPassword())">
                   <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash' : 'bi-eye'"></i>
                 </button>

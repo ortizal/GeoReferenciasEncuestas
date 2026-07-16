@@ -3,12 +3,14 @@ package com.georeferencias.service.impl;
 import com.georeferencias.dto.NotificacionVisitaDTO;
 import com.georeferencias.dto.ImportProgressMessage;
 import com.georeferencias.dto.VisitaDTO;
+import com.georeferencias.entity.Manzana;
 import com.georeferencias.entity.Predio;
 import com.georeferencias.entity.Usuario;
 import com.georeferencias.entity.Visita;
 import com.georeferencias.enums.EstadoVisita;
 import com.georeferencias.exception.BadRequestException;
 import com.georeferencias.exception.ResourceNotFoundException;
+import com.georeferencias.repository.ManzanaRepository;
 import com.georeferencias.repository.PredioRepository;
 import com.georeferencias.repository.UsuarioRepository;
 import com.georeferencias.repository.VisitaRepository;
@@ -41,6 +43,7 @@ public class VisitaServiceImpl implements VisitaService {
 
     private final VisitaRepository visitaRepository;
     private final PredioRepository predioRepository;
+    private final ManzanaRepository manzanaRepository;
     private final UsuarioRepository usuarioRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -170,9 +173,8 @@ public class VisitaServiceImpl implements VisitaService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<VisitaDTO> buscar(String busqueda, Pageable pageable) {
-        // Implementar búsqueda
-        return visitaRepository.findAll(pageable).map(this::mapToDTO);
+    public Page<VisitaDTO> buscar(String busqueda, String estado, LocalDateTime desde, LocalDateTime hasta, Pageable pageable) {
+        return visitaRepository.buscarConFiltros(busqueda, estado, desde, hasta, pageable).map(this::mapToDTO);
     }
 
     @Override
@@ -308,6 +310,24 @@ public class VisitaServiceImpl implements VisitaService {
                 visita.setEstrella(dto.getEstrella());
 
                 visitaRepository.save(visita);
+
+                Manzana manzana = predio.getManzana();
+                if (manzana != null) {
+                    boolean manzanaModificada = false;
+                    if ((manzana.getSector() == null || manzana.getSector().isBlank())
+                            && dto.getParroquia() != null && !dto.getParroquia().isBlank()) {
+                        manzana.setSector(truncate(dto.getParroquia(), 50));
+                        manzanaModificada = true;
+                    }
+                    if ((manzana.getBarrio() == null || manzana.getBarrio().isBlank())
+                            && dto.getBarrio() != null && !dto.getBarrio().isBlank()) {
+                        manzana.setBarrio(truncate(dto.getBarrio(), 50));
+                        manzanaModificada = true;
+                    }
+                    if (manzanaModificada) {
+                        manzanaRepository.save(manzana);
+                    }
+                }
 
                 if (esActualizacion) {
                     actualizadas++;

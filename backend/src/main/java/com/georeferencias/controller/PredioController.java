@@ -72,9 +72,12 @@ public class PredioController {
             @RequestParam(defaultValue = "") String busqueda,
             @RequestParam(defaultValue = "true") Boolean activo,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "claveCatastral") String sortField,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
         Page<PredioDTO> resultado = predioService.buscar(
-                busqueda, activo, PageRequest.of(page, size, Sort.by("claveCatastral")));
+                busqueda, activo, PageRequest.of(page, size, sort));
         return ResponseEntity.ok(ApiResponse.exito(resultado, "Predios obtenidos"));
     }
 

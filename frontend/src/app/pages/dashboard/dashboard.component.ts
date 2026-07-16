@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { Dashboard } from '../../core/models/models';
 
@@ -26,16 +26,12 @@ import { Dashboard } from '../../core/models/models';
             <span class="kpi-value">{{ kpi.value() }}</span>
             <span class="kpi-label">{{ kpi.label }}</span>
           </div>
-          <div class="kpi-trend" *ngIf="kpi.trend">
-            <i class="bi" [ngClass]="kpi.trend > 0 ? 'bi-arrow-up-short' : 'bi-arrow-down-short'"></i>
-            <span>{{ kpi.trend }}%</span>
-          </div>
         </div>
       </div>
 
       <!-- Secondary KPIs -->
       <div class="secondary-grid">
-        <div class="mini-kpi" *ngFor="let mkpi of secondaryKpis">
+        <div class="mini-kpi" *ngFor="let mkpi of secondaryKpis" [style.opacity]="isStatusVisible(mkpi.key) ? 1 : 0.3">
           <div class="mini-dot" [style.background]="mkpi.color"></div>
           <div class="mini-info">
             <span class="mini-value">{{ mkpi.value() }}</span>
@@ -48,12 +44,12 @@ import { Dashboard } from '../../core/models/models';
       <div class="content-grid">
         <!-- Chart Area -->
         <div class="card-premium chart-card">
-          <div class="card-premium-header">
-            <span class="card-premium-title">Visitas por Día</span>
-            <div class="chart-controls">
+          <div class="card-premium-header clickable" (click)="toggleCard('chart')">
+            <span class="card-premium-title"><i class="bi" [ngClass]="cardsState().chart ? 'bi-chevron-down' : 'bi-chevron-right'"></i> Visitas por Día</span>
+            <div class="chart-controls" (click)="$event.stopPropagation()">
               <div class="date-filters">
-                <label>Desde: <input type="date" [ngModel]="fechaDesde()" (ngModelChange)="onFechaDesdeChange($event)"></label>
-                <label>Hasta: <input type="date" [ngModel]="fechaHasta()" (ngModelChange)="onFechaHastaChange($event)"></label>
+                <label>Desde: <input type="date" [ngModel]="fechaDesde()" (ngModelChange)="onFechaDesdeChange($event)" autocomplete="off"></label>
+                <label>Hasta: <input type="date" [ngModel]="fechaHasta()" (ngModelChange)="onFechaHastaChange($event)" autocomplete="off"></label>
                 <button class="filter-btn" (click)="aplicarFechas()">Aplicar</button>
               </div>
               <div class="chart-legend">
@@ -65,21 +61,24 @@ import { Dashboard } from '../../core/models/models';
               </div>
             </div>
           </div>
-          <div class="card-premium-body">
-            <div class="line-chart" *ngIf="chartDays().length > 0">
-              <div class="chart-y-axis">
-                <span *ngFor="let v of yLabels()">{{ v }}</span>
-              </div>
-              <div class="chart-area">
-                <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" preserveAspectRatio="none" class="chart-svg">
-                  <line *ngFor="let y of yGridLines()" [attr.x1]="0" [attr.y1]="y" [attr.x2]="chartWidth" [attr.y2]="y" class="grid-line"/>
-                  <polyline *ngFor="let line of chartLines()" [attr.points]="line.points" [attr.stroke]="line.color" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <g *ngFor="let line of chartLines()">
-                    <circle *ngFor="let pt of line.dots" [attr.cx]="pt.x" [attr.cy]="pt.y" r="3" [attr.fill]="line.color" class="chart-dot"/>
-                  </g>
-                </svg>
-                <div class="chart-x-axis">
-                  <span *ngFor="let d of chartDays(); let i = index" [class.visible]="i % xLabelStep() === 0">{{ d }}</span>
+          <div class="card-premium-body" *ngIf="cardsState().chart">
+            <div class="chart-scroll-wrapper">
+              <div class="line-chart" [style.width.px]="chartScrollWidth()" *ngIf="chartDays().length > 0">
+                <div class="chart-y-axis">
+                  <span *ngFor="let v of yLabels()">{{ v }}</span>
+                </div>
+                <div class="chart-area">
+                  <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" preserveAspectRatio="none" class="chart-svg">
+                    <line *ngFor="let y of yGridLines()" [attr.x1]="0" [attr.y1]="y" [attr.x2]="chartWidth" [attr.y2]="y" class="grid-line"/>
+                    <polyline *ngFor="let line of chartLines()" [attr.points]="line.points" [attr.stroke]="line.color" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <g *ngFor="let line of chartLines()">
+                      <circle *ngFor="let pt of line.dots; let i = index" [attr.cx]="pt.x" [attr.cy]="pt.y" r="3" [attr.fill]="line.color" class="chart-dot"/>
+                      <text *ngFor="let pt of line.dots; let i = index" [attr.x]="pt.x" [attr.y]="pt.y - 8" [attr.fill]="line.color" class="chart-label" text-anchor="middle">{{ line.values[i] }}</text>
+                    </g>
+                  </svg>
+                  <div class="chart-x-axis">
+                    <span *ngFor="let d of chartDays(); let i = index" [class.visible]="i % xLabelStep() === 0">{{ d }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -92,12 +91,12 @@ import { Dashboard } from '../../core/models/models';
 
         <!-- Distribution -->
         <div class="card-premium dist-card">
-          <div class="card-premium-header">
-            <span class="card-premium-title">Distribución</span>
+          <div class="card-premium-header clickable" (click)="toggleCard('dist')">
+            <span class="card-premium-title"><i class="bi" [ngClass]="cardsState().dist ? 'bi-chevron-down' : 'bi-chevron-right'"></i> Distribución</span>
           </div>
-          <div class="card-premium-body">
+          <div class="card-premium-body" *ngIf="cardsState().dist">
             <div class="dist-list">
-              <div class="dist-item" *ngFor="let d of distributions">
+              <div class="dist-item" *ngFor="let d of distributions" [style.opacity]="isStatusVisible(d.key) ? 1 : 0.3">
                 <label class="dist-check">
                   <input type="checkbox" [checked]="isStatusVisible(d.key)" (change)="toggleStatusFilter(d.key)">
                   <span class="dist-color" [style.background]="d.color"></span>
@@ -112,13 +111,60 @@ import { Dashboard } from '../../core/models/models';
           </div>
         </div>
 
+        <!-- Top Rutas Positivos -->
+        <div class="card-premium routes-positivos">
+          <div class="card-premium-header clickable" (click)="toggleCard('routesPos')">
+            <span class="card-premium-title"><i class="bi" [ngClass]="cardsState().routesPos ? 'bi-chevron-down' : 'bi-chevron-right'"></i> Rutas con más Positivos</span>
+          </div>
+          <div class="card-premium-body no-padding" *ngIf="cardsState().routesPos">
+            <div class="routes-list">
+              <div class="route-item" *ngFor="let r of topPositivos(); let i = index" (click)="irAManzana(r.idManzana)">
+                <span class="route-rank">{{ i + 1 }}</span>
+                <div class="route-info">
+                  <span class="route-name">{{ r.nombre }}</span>
+                  <span class="route-count">{{ r.total }} positivos</span>
+                </div>
+                <i class="bi bi-box-arrow-up-right route-link"></i>
+              </div>
+              <div class="routes-empty" *ngIf="topPositivos().length === 0">
+                <span>No hay datos disponibles</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Rutas AR/Estrellas -->
+        <div class="card-premium routes-ar">
+          <div class="card-premium-header clickable" (click)="toggleCard('routesAR')">
+            <span class="card-premium-title"><i class="bi" [ngClass]="cardsState().routesAR ? 'bi-chevron-down' : 'bi-chevron-right'"></i> Rutas con más AR y Estrellas</span>
+          </div>
+          <div class="card-premium-body no-padding" *ngIf="cardsState().routesAR">
+            <div class="routes-list">
+              <div class="route-item" *ngFor="let r of topArEstrellas(); let i = index" (click)="irAManzana(r.idManzana)">
+                <span class="route-rank">{{ i + 1 }}</span>
+                <div class="route-info">
+                  <span class="route-name">{{ r.nombre }}</span>
+                  <span class="route-count">
+                    <i class="bi bi-person-check" style="color:#2563EB"></i> {{ r.arCount }}
+                    <i class="bi bi-star-fill" style="color:#F59E0B;margin-left:8px"></i> {{ r.estrellaCount }}
+                  </span>
+                </div>
+                <i class="bi bi-box-arrow-up-right route-link"></i>
+              </div>
+              <div class="routes-empty" *ngIf="topArEstrellas().length === 0">
+                <span>No hay datos disponibles</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Recent Activity -->
         <div class="card-premium activity-card">
-          <div class="card-premium-header">
-            <span class="card-premium-title">Actividad Reciente</span>
-            <a class="view-all" routerLink="/visitas">Ver todo</a>
+          <div class="card-premium-header clickable" (click)="toggleCard('activity')">
+            <span class="card-premium-title"><i class="bi" [ngClass]="cardsState().activity ? 'bi-chevron-down' : 'bi-chevron-right'"></i> Actividad Reciente</span>
+            <a class="view-all" routerLink="/visitas" (click)="$event.stopPropagation()">Ver todo</a>
           </div>
-          <div class="card-premium-body no-padding">
+          <div class="card-premium-body no-padding scrollable-body" *ngIf="cardsState().activity">
             <div class="activity-list">
               <div class="activity-item" *ngFor="let act of dashboard()?.visitasRecientes || []">
                 <div class="activity-dot" [style.background]="getStatusColor(act.estado)"></div>
@@ -134,11 +180,11 @@ import { Dashboard } from '../../core/models/models';
 
         <!-- Map Preview -->
         <div class="card-premium map-preview-card">
-          <div class="card-premium-header">
-            <span class="card-premium-title">Vista del Mapa</span>
-            <a class="view-all" routerLink="/mapa">Abrir mapa</a>
+          <div class="card-premium-header clickable" (click)="toggleCard('map')">
+            <span class="card-premium-title"><i class="bi" [ngClass]="cardsState().map ? 'bi-chevron-down' : 'bi-chevron-right'"></i> Vista del Mapa</span>
+            <a class="view-all" routerLink="/mapa" (click)="$event.stopPropagation()">Abrir mapa</a>
           </div>
-          <div class="card-premium-body no-padding">
+          <div class="card-premium-body no-padding" *ngIf="cardsState().map">
             <div class="map-placeholder">
               <div class="map-grid">
                 <div class="grid-line" *ngFor="let i of [1,2,3,4,5]"></div>
@@ -164,7 +210,7 @@ import { Dashboard } from '../../core/models/models';
     .dashboard { animation: fadeIn 0.3s ease-out; }
 
     .kpi-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4);
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-4);
       margin-bottom: var(--space-4);
     }
     .kpi-card {
@@ -182,10 +228,6 @@ import { Dashboard } from '../../core/models/models';
     .kpi-content { display: flex; flex-direction: column; }
     .kpi-value { font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary); line-height: 1.1; }
     .kpi-label { font-size: var(--text-xs); color: var(--text-secondary); margin-top: 2px; }
-    .kpi-trend { margin-left: auto; display: flex; align-items: center; gap: 2px; font-size: var(--text-xs); font-weight: 600;
-      & i.bi-arrow-up-short { color: var(--success-600); }
-      & i.bi-arrow-down-short { color: var(--danger-600); }
-    }
 
     .secondary-grid {
       display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-3);
@@ -202,13 +244,18 @@ import { Dashboard } from '../../core/models/models';
     .mini-label { font-size: var(--text-xs); color: var(--text-secondary); }
 
     .content-grid {
-      display: grid; grid-template-columns: 1fr 320px; grid-template-rows: auto auto;
+      display: grid; grid-template-columns: 1fr 320px; grid-template-rows: auto auto auto auto auto;
       gap: var(--space-4);
     }
     .chart-card { grid-column: 1; grid-row: 1; }
     .dist-card { grid-column: 2; grid-row: 1; }
-    .activity-card { grid-column: 1; grid-row: 2; }
-    .map-preview-card { grid-column: 2; grid-row: 2; }
+    .routes-positivos { grid-column: 1; grid-row: 2; }
+    .routes-ar { grid-column: 2; grid-row: 2; }
+    .activity-card { grid-column: 1; grid-row: 3; }
+    .map-preview-card { grid-column: 2; grid-row: 3; }
+
+    .clickable { cursor: pointer; user-select: none; }
+    .clickable:hover { background: var(--bg-hover); }
 
     .chart-controls { display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-end; }
     .date-filters { display: flex; align-items: center; gap: var(--space-2); }
@@ -227,14 +274,17 @@ import { Dashboard } from '../../core/models/models';
     .legend-item { display: flex; align-items: center; gap: 4px; font-size: var(--text-xs); color: var(--text-secondary); }
     .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-    .line-chart { display: flex; gap: var(--space-2); height: 220px; padding: var(--space-2) 0; }
+    .chart-scroll-wrapper { overflow-x: auto; overflow-y: hidden; }
+    .line-chart { display: flex; gap: var(--space-2); height: 220px; padding: var(--space-2) 0; min-width: 100%; }
     .chart-y-axis { display: flex; flex-direction: column; justify-content: space-between; padding: 0 var(--space-1); min-width: 30px; text-align: right; }
     .chart-y-axis span { font-size: 0.625rem; color: var(--text-tertiary); line-height: 1; }
-    .chart-area { flex: 1; display: flex; flex-direction: column; position: relative; }
+    .chart-area { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
     .chart-svg { width: 100%; flex: 1; }
     .grid-line { stroke: var(--border-light); stroke-width: 0.5; stroke-dasharray: 4,4; }
     .chart-dot { opacity: 0; transition: opacity 0.15s; }
     .chart-svg:hover .chart-dot { opacity: 1; }
+    .chart-label { font-size: 9px; font-weight: 600; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+    .chart-svg:hover .chart-label { opacity: 1; }
     .chart-x-axis { display: flex; justify-content: space-between; padding-top: var(--space-1); }
     .chart-x-axis span { font-size: 0.625rem; color: var(--text-tertiary); visibility: hidden; }
     .chart-x-axis span.visible { visibility: visible; }
@@ -260,7 +310,25 @@ import { Dashboard } from '../../core/models/models';
     .dist-bar { width: 60px; height: 4px; background: var(--neutral-100); border-radius: 2px; overflow: hidden; }
     .dist-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
 
+    .routes-list { display: flex; flex-direction: column; max-height: 280px; overflow-y: auto; }
+    .route-item {
+      display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-light); cursor: pointer; transition: background var(--transition-fast);
+      &:hover { background: var(--bg-hover); }
+      &:last-child { border-bottom: none; }
+    }
+    .route-rank {
+      width: 24px; height: 24px; border-radius: 50%; background: var(--primary-50); color: var(--primary-700);
+      display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: 700; flex-shrink: 0;
+    }
+    .route-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .route-name { font-size: var(--text-sm); font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .route-count { font-size: var(--text-xs); color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+    .route-link { font-size: var(--text-xs); color: var(--text-tertiary); flex-shrink: 0; }
+    .routes-empty { padding: var(--space-6); text-align: center; color: var(--text-tertiary); font-size: var(--text-sm); }
+
     .no-padding { padding: 0 !important; }
+    .scrollable-body { max-height: 300px; overflow-y: auto; }
     .activity-list { display: flex; flex-direction: column; }
     .activity-item {
       display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-5);
@@ -294,7 +362,7 @@ import { Dashboard } from '../../core/models/models';
     }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
-    @media (max-width: 1200px) { .kpi-grid, .secondary-grid { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: 1fr; } .dist-card, .map-preview-card { grid-column: 1; } }
+    @media (max-width: 1200px) { .kpi-grid, .secondary-grid { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: 1fr; } .dist-card, .map-preview-card, .routes-positivos, .routes-ar, .activity-card { grid-column: 1; grid-row: auto; } }
     @media (max-width: 768px) { .kpi-grid, .secondary-grid { grid-template-columns: 1fr; } }
   `]
 })
@@ -304,6 +372,17 @@ export class DashboardComponent implements OnInit {
   kpis: any[] = [];
   secondaryKpis: any[] = [];
   distributions: any[] = [];
+  topPositivos = signal<any[]>([]);
+  topArEstrellas = signal<any[]>([]);
+
+  cardsState = signal({
+    chart: true,
+    dist: true,
+    routesPos: true,
+    routesAR: true,
+    activity: false,
+    map: true,
+  });
 
   statusFilters = [
     { key: 'POSITIVO', label: 'Positivos', color: '#2563EB', visible: true },
@@ -323,6 +402,7 @@ export class DashboardComponent implements OnInit {
   yLabels = signal<string[]>([]);
   yGridLines = signal<number[]>([]);
   xLabelStep = signal(1);
+  chartScrollWidth = signal(600);
 
   private statusColors: Record<string, string> = {
     'POSITIVO': '#2563EB',
@@ -336,7 +416,7 @@ export class DashboardComponent implements OnInit {
     'FINALIZADA': '#059669',
   };
 
-  constructor(private dashboardService: DashboardService) {}
+  constructor(private dashboardService: DashboardService, private router: Router) {}
 
   ngOnInit() {
     const hoy = new Date();
@@ -345,6 +425,7 @@ export class DashboardComponent implements OnInit {
     this.fechaHasta.set(this.formatDate(hoy));
     this.loadDashboard();
     this.cargarVisitasPorDia();
+    this.loadTopRutas();
   }
 
   private formatDate(fecha: Date): string {
@@ -352,6 +433,14 @@ export class DashboardComponent implements OnInit {
     const m = String(fecha.getMonth() + 1).padStart(2, '0');
     const d = String(fecha.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  }
+
+  toggleCard(key: string) {
+    this.cardsState.update(s => ({ ...s, [key]: !s[key as keyof typeof s] }));
+  }
+
+  irAManzana(idManzana: number) {
+    this.router.navigate(['/mapa'], { queryParams: { type: 'manzana', id: idManzana } });
   }
 
   loadDashboard() {
@@ -362,6 +451,15 @@ export class DashboardComponent implements OnInit {
           this.buildKPIs();
         }
       }
+    });
+  }
+
+  loadTopRutas() {
+    this.dashboardService.topManzanasPositivos().subscribe({
+      next: (r) => { if (r.exitoso) this.topPositivos.set(r.datos || []); }
+    });
+    this.dashboardService.topManzanasArEstrellas().subscribe({
+      next: (r) => { if (r.exitoso) this.topArEstrellas.set(r.datos || []); }
     });
   }
 
@@ -407,10 +505,12 @@ export class DashboardComponent implements OnInit {
   buildKPIs() {
     const d = this.dashboard()!;
     this.kpis = [
-      { label: 'Manzanas', value: () => d.totalManzanas || 0, icon: 'bi-grid-3x3', bg: 'linear-gradient(135deg, var(--primary-500), var(--primary-700))', trend: 12 },
-      { label: 'Predios', value: () => d.totalPredios || 0, icon: 'bi-house-door', bg: 'linear-gradient(135deg, var(--emerald-500), var(--emerald-700))', trend: 8 },
-      { label: 'Visitas', value: () => d.totalVisitas || 0, icon: 'bi-clipboard-check', bg: 'linear-gradient(135deg, var(--info-500), var(--info-600))', trend: 15 },
-      { label: 'Cobertura', value: () => (d.porcentajeCobertura || 0).toFixed(1) + '%', icon: 'bi-percent', bg: 'linear-gradient(135deg, var(--warning-500), var(--warning-600))', trend: null },
+      { label: 'Manzanas', value: () => d.totalManzanas || 0, icon: 'bi-grid-3x3', bg: 'linear-gradient(135deg, var(--primary-500), var(--primary-700))' },
+      { label: 'Predios', value: () => d.totalPredios || 0, icon: 'bi-house-door', bg: 'linear-gradient(135deg, var(--emerald-500), var(--emerald-700))' },
+      { label: 'Visitas', value: () => d.totalVisitas || 0, icon: 'bi-clipboard-check', bg: 'linear-gradient(135deg, var(--info-500), var(--info-600))' },
+      { label: 'Cobertura', value: () => (d.porcentajeCobertura || 0).toFixed(1) + '%', icon: 'bi-percent', bg: 'linear-gradient(135deg, var(--warning-500), var(--warning-600))' },
+      { label: 'Apoya Alcalde', value: () => d.apoyosAlcalde || 0, icon: 'bi-person-check', bg: 'linear-gradient(135deg, #2563EB, #1D4ED8)' },
+      { label: 'Estrellas', value: () => d.estrellas || 0, icon: 'bi-star-fill', bg: 'linear-gradient(135deg, #F59E0B, #D97706)' },
     ];
 
     this.secondaryKpis = [
@@ -419,7 +519,7 @@ export class DashboardComponent implements OnInit {
       { key: 'INDECISO', label: 'Indecisos', value: () => d.indecisos || 0, color: '#F59E0B' },
       { key: 'EN_BLANCO', label: 'En Blanco', value: () => d.enBlanco || 0, color: '#6B7280' },
       { key: 'NO_TRABAJABLE', label: 'No Trabajables', value: () => d.noTrabajables || 0, color: '#1C1C1C' },
-    ].filter(s => this.isStatusVisible(s.key));
+    ];
 
     this.distributions = [
       { key: 'POSITIVO', label: 'Positivos', value: () => d.positivos || 0, color: '#2563EB' },
@@ -427,13 +527,14 @@ export class DashboardComponent implements OnInit {
       { key: 'INDECISO', label: 'Indecisos', value: () => d.indecisos || 0, color: '#F59E0B' },
       { key: 'EN_BLANCO', label: 'En Blanco', value: () => d.enBlanco || 0, color: '#6B7280' },
       { key: 'NO_TRABAJABLE', label: 'No Trabajables', value: () => d.noTrabajables || 0, color: '#1C1C1C' },
-    ].filter(s => this.isStatusVisible(s.key));
+    ];
   }
 
   private buildLineChart(data: any[]) {
     if (!data || data.length === 0) {
       this.chartDays.set([]);
       this.chartLines.set([]);
+      this.chartScrollWidth.set(600);
       return;
     }
 
@@ -442,6 +543,10 @@ export class DashboardComponent implements OnInit {
     const dates = Array.from(dateSet).sort();
     this.chartDays.set(dates);
     this.xLabelStep.set(Math.max(1, Math.floor(dates.length / 7)));
+
+    const minChartWidth = 600;
+    const widthPerDay = 50;
+    this.chartScrollWidth.set(Math.max(minChartWidth, dates.length * widthPerDay));
 
     const estados = new Set<string>();
     data.forEach((d: any) => {
@@ -477,7 +582,7 @@ export class DashboardComponent implements OnInit {
     this.yGridLines.set(yGl);
 
     const padding = 8;
-    const w = this.chartWidth - padding * 2;
+    const w = this.chartScrollWidth() - padding * 2;
     const h = this.chartHeight - padding * 2;
     const xStep = dates.length > 1 ? w / (dates.length - 1) : w;
 
@@ -485,19 +590,22 @@ export class DashboardComponent implements OnInit {
     estadoData.forEach((map, estado) => {
       const points: string[] = [];
       const dots: { x: number; y: number }[] = [];
+      const values: number[] = [];
       let idx = 0;
       map.forEach((val) => {
         const x = padding + idx * xStep;
         const y = padding + h - (val / maxVal) * h;
         points.push(`${x},${y}`);
         dots.push({ x, y });
+        values.push(val);
         idx++;
       });
       lines.push({
         estado,
         color: this.statusColors[estado] || '#6B7280',
         points: points.join(' '),
-        dots
+        dots,
+        values
       });
     });
     this.chartLines.set(lines);

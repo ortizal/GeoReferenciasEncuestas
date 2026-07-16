@@ -55,6 +55,8 @@ export class PrediosComponent implements OnInit {
   totalPaginas = 0;
   totalRegistros = 0;
   tamanoPagina = 20;
+  sortField = signal('claveCatastral');
+  sortDir = signal<'asc'|'desc'>('asc');
 
   constructor(private predioService: PredioService, private manzanaService: ManzanaService, private router: Router, private wsService: WebSocketService) {}
   ngOnInit() { this.loadManzanas(); this.buscar(); }
@@ -68,7 +70,7 @@ export class PrediosComponent implements OnInit {
 
   loadManzanas() { this.manzanaService.listarTodas().subscribe({ next: (r) => { if (r.exitoso) this.manzanas.set(r.datos || []); } }); }
   buscar() {
-    this.predioService.buscar(this.busqueda, true, this.paginaActual, this.tamanoPagina).subscribe({
+    this.predioService.buscar(this.busqueda, true, this.paginaActual, this.tamanoPagina, this.sortField(), this.sortDir()).subscribe({
       next: (r) => {
         if (r.exitoso && r.datos) {
           this.predios.set(r.datos.content || []);
@@ -78,6 +80,22 @@ export class PrediosComponent implements OnInit {
         }
       }
     });
+  }
+
+  toggleSort(field: string) {
+    if (this.sortField() === field) {
+      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(field);
+      this.sortDir.set('asc');
+    }
+    this.paginaActual = 0;
+    this.buscar();
+  }
+
+  sortIcon(field: string): string {
+    if (this.sortField() !== field) return 'bi-arrow-down-up';
+    return this.sortDir() === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down';
   }
   irAPagina(pagina: number) {
     if (pagina < 0 || pagina >= this.totalPaginas) return;

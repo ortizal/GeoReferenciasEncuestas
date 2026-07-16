@@ -12,7 +12,7 @@ import { CommonModule } from '@angular/common';
         <i *ngIf="icon()" class="bi input-icon" [ngClass]="icon()"></i>
         <input *ngIf="type() !== 'textarea'" [type]="showPassword() ? 'text' : type()" class="input-field"
           [placeholder]="placeholder()" [value]="value()" [disabled]="disabled()" [readonly]="readonly()"
-          (input)="onInput($event)" (blur)="onBlur()">
+          autocomplete="off" (input)="onInput($event)" (blur)="onBlur()">
         <textarea *ngIf="type() === 'textarea'" class="input-field textarea"
           [placeholder]="placeholder()" [value]="value()" [disabled]="disabled()" [rows]="rows()"
           (input)="onInput($event)" (blur)="onBlur()"></textarea>

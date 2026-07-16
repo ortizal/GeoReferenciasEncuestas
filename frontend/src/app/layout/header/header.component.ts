@@ -17,7 +17,7 @@ import { WebSocketService, NotificacionVisita } from '../../core/services/websoc
         </button>
         <div class="search-global">
           <i class="bi bi-search search-icon"></i>
-          <input type="text" placeholder="Buscar módulos, módulos..." class="search-input">
+          <input type="text" placeholder="Buscar módulos, módulos..." class="search-input" autocomplete="off">
           <kbd class="search-shortcut">Ctrl+K</kbd>
         </div>
       </div>
@@ -94,15 +94,15 @@ import { WebSocketService, NotificacionVisita } from '../../core/services/websoc
         <div class="modal-body">
           <div class="form-field">
             <label>Contraseña Actual *</label>
-            <input class="form-input" type="password" [(ngModel)]="cambioPass.actual" placeholder="Ingrese contraseña actual">
+            <input class="form-input" type="password" [(ngModel)]="cambioPass.actual" placeholder="Ingrese contraseña actual" autocomplete="new-password">
           </div>
           <div class="form-field">
             <label>Nueva Contraseña *</label>
-            <input class="form-input" type="password" [(ngModel)]="cambioPass.nueva" placeholder="Mínimo 8 caracteres">
+            <input class="form-input" type="password" [(ngModel)]="cambioPass.nueva" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
           </div>
           <div class="form-field">
             <label>Confirmar Contraseña *</label>
-            <input class="form-input" type="password" [(ngModel)]="cambioPass.confirmar" placeholder="Repita la nueva contraseña">
+            <input class="form-input" type="password" [(ngModel)]="cambioPass.confirmar" placeholder="Repita la nueva contraseña" autocomplete="new-password">
           </div>
           <div class="mensaje error" *ngIf="cambioPassMensaje() && !cambioPassMensaje().includes('exitosamente')">
             <i class="bi bi-exclamation-circle-fill"></i> {{ cambioPassMensaje() }}

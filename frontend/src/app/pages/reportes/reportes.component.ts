@@ -22,8 +22,8 @@ import { FormsModule } from '@angular/forms';
         <div class="card-premium-header"><span class="card-premium-title">Filtros de Reporte</span></div>
         <div class="card-premium-body">
           <div class="filter-grid">
-            <div class="form-field"><label>Fecha Inicio</label><input type="date" class="form-input" [(ngModel)]="fechaInicio"></div>
-            <div class="form-field"><label>Fecha Fin</label><input type="date" class="form-input" [(ngModel)]="fechaFin"></div>
+            <div class="form-field"><label>Fecha Inicio</label><input type="date" class="form-input" [(ngModel)]="fechaInicio" autocomplete="off"></div>
+            <div class="form-field"><label>Fecha Fin</label><input type="date" class="form-input" [(ngModel)]="fechaFin" autocomplete="off"></div>
             <div class="form-field"><label>Sector</label><select class="form-input" [(ngModel)]="sector"><option value="">Todos</option><option>Norte</option><option>Sur</option><option>Este</option><option>Oeste</option></select></div>
             <div class="form-field" style="justify-content:flex-end"><button class="btn-primary-action"><i class="bi bi-file-earmark-bar-graph"></i> Generar</button></div>
           </div>

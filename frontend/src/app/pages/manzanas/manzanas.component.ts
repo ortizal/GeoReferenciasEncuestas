@@ -62,6 +62,8 @@ export class ManzanasComponent implements OnInit {
   totalPaginas = 0;
   totalRegistros = 0;
   tamanoPagina = 20;
+  sortField = signal('nombre');
+  sortDir = signal<'asc'|'desc'>('asc');
 
   constructor(
     private manzanaService: ManzanaService,
@@ -81,7 +83,7 @@ export class ManzanasComponent implements OnInit {
   }
 
   buscar() {
-    this.manzanaService.buscar(this.busqueda, this.filtroActivo, this.paginaActual, this.tamanoPagina).subscribe({
+    this.manzanaService.buscar(this.busqueda, this.filtroActivo, this.paginaActual, this.tamanoPagina, this.sortField(), this.sortDir()).subscribe({
       next: (r) => {
         if (r.exitoso && r.datos) {
           this.manzanas.set(r.datos.content || []);
@@ -91,6 +93,22 @@ export class ManzanasComponent implements OnInit {
         }
       }
     });
+  }
+
+  toggleSort(field: string) {
+    if (this.sortField() === field) {
+      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(field);
+      this.sortDir.set('asc');
+    }
+    this.paginaActual = 0;
+    this.buscar();
+  }
+
+  sortIcon(field: string): string {
+    if (this.sortField() !== field) return 'bi-arrow-down-up';
+    return this.sortDir() === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down';
   }
   irAPagina(pagina: number) {
     if (pagina < 0 || pagina >= this.totalPaginas) return;

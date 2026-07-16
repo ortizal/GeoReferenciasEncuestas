@@ -12,12 +12,14 @@ export class PredioService {
 
   constructor(private http: HttpClient) {}
 
-  buscar(busqueda: string = '', activo: boolean = true, page: number = 0, size: number = 10): Observable<ApiResponse<PaginatedResponse<Predio>>> {
+  buscar(busqueda: string = '', activo: boolean = true, page: number = 0, size: number = 10, sortField: string = 'claveCatastral', sortDir: string = 'asc'): Observable<ApiResponse<PaginatedResponse<Predio>>> {
     let params = new HttpParams()
       .set('busqueda', busqueda)
       .set('activo', activo.toString())
       .set('page', page.toString())
-      .set('size', size.toString());
+      .set('size', size.toString())
+      .set('sortField', sortField)
+      .set('sortDir', sortDir);
     return this.http.get<ApiResponse<PaginatedResponse<Predio>>>(this.apiUrl, { params });
   }
 

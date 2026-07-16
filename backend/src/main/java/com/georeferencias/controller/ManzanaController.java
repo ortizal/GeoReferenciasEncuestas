@@ -74,9 +74,12 @@ public class ManzanaController {
             @RequestParam(defaultValue = "") String busqueda,
             @RequestParam(defaultValue = "true") Boolean activo,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "nombre") String sortField,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
         Page<ManzanaDTO> resultado = manzanaService.buscar(
-                busqueda, activo, PageRequest.of(page, size, Sort.by("nombre")));
+                busqueda, activo, PageRequest.of(page, size, sort));
         return ResponseEntity.ok(ApiResponse.exito(resultado, "Manzanas obtenidas"));
     }
 

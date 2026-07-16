@@ -19,7 +19,7 @@ import { Manzana, Predio } from '../../core/models/models';
         <div class="toolbar-left">
           <div class="search-box">
             <i class="bi bi-search"></i>
-            <input type="text" placeholder="Buscar predio o manzana..." [(ngModel)]="searchTerm" (keyup.enter)="buscarPredio()">
+            <input type="text" placeholder="Buscar predio o manzana..." [(ngModel)]="searchTerm" (keyup.enter)="buscarPredio()" autocomplete="off">
           </div>
         </div>
         <div class="toolbar-center">
@@ -32,6 +32,11 @@ import { Manzana, Predio } from '../../core/models/models';
             <span>Predios</span>
           </button>
           <div class="tool-divider"></div>
+          <button class="tool-btn" [class.active]="showSpecialMarkers()" (click)="toggleSpecialMarkers()" title="Mostrar/Ocultar estrellas y apoyos">
+            <i class="bi bi-star-fill" style="color:#F59E0B;font-size:0.875rem"></i>
+            <i class="bi bi-person-check" style="color:#2563EB;font-size:0.875rem"></i>
+            <span>Estrellas/AP</span>
+          </button>
           <button class="tool-btn" (click)="clearSelection()" title="Limpiar selección">
             <i class="bi bi-x-circle"></i>
             <span>Limpiar</span>
@@ -39,11 +44,21 @@ import { Manzana, Predio } from '../../core/models/models';
         </div>
         <div class="toolbar-right">
           <div class="legend">
-            <span class="legend-item"><span class="legend-dot" style="background:#2563EB"></span>Positivo</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#DC2626"></span>Negativo</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#F59E0B"></span>Indeciso</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#6B7280"></span>Sin visita</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#1C1C1C"></span>No trabajable</span>
+            <button class="legend-item" [class.dimmed]="!isStatusVisible('POSITIVO')" (click)="toggleStatusFilter('POSITIVO')">
+              <span class="legend-dot" style="background:#2563EB"></span>Positivo <span class="legend-count">{{ statusCounts()['POSITIVO'] || 0 }}</span>
+            </button>
+            <button class="legend-item" [class.dimmed]="!isStatusVisible('NEGATIVO')" (click)="toggleStatusFilter('NEGATIVO')">
+              <span class="legend-dot" style="background:#DC2626"></span>Negativo <span class="legend-count">{{ statusCounts()['NEGATIVO'] || 0 }}</span>
+            </button>
+            <button class="legend-item" [class.dimmed]="!isStatusVisible('INDECISO')" (click)="toggleStatusFilter('INDECISO')">
+              <span class="legend-dot" style="background:#F59E0B"></span>Indeciso <span class="legend-count">{{ statusCounts()['INDECISO'] || 0 }}</span>
+            </button>
+            <button class="legend-item" [class.dimmed]="!isStatusVisible('EN_BLANCO')" (click)="toggleStatusFilter('EN_BLANCO')">
+              <span class="legend-dot" style="background:#6B7280"></span>Sin visita <span class="legend-count">{{ statusCounts()['EN_BLANCO'] || 0 }}</span>
+            </button>
+            <button class="legend-item" [class.dimmed]="!isStatusVisible('NO_TRABAJABLE')" (click)="toggleStatusFilter('NO_TRABAJABLE')">
+              <span class="legend-dot" style="background:#1C1C1C"></span>No trabajable <span class="legend-count">{{ statusCounts()['NO_TRABAJABLE'] || 0 }}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -51,7 +66,7 @@ import { Manzana, Predio } from '../../core/models/models';
       <!-- Map Container -->
       <div class="map-wrapper">
         <div id="map" class="map-canvas"></div>
-        <div style="position:absolute;bottom:10px;left:10px;z-index:1000;background:rgba(0,0,0,0.75);color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;">
+        <div class="map-stats">
           Manzanas: {{ manzanas().length }} | Predios: {{ predios().length }}
         </div>
 
@@ -125,7 +140,7 @@ import { Manzana, Predio } from '../../core/models/models';
             </div>
             <div class="modal-field">
               <label>Observaciones</label>
-              <textarea class="modal-textarea" rows="3" [(ngModel)]="visitaForm.observaciones" placeholder="Ingrese observaciones..."></textarea>
+              <textarea class="modal-textarea" rows="3" [(ngModel)]="visitaForm.observaciones" placeholder="Ingrese observaciones..." autocomplete="off"></textarea>
             </div>
             <div class="modal-field">
               <label>Fotografía</label>
@@ -175,12 +190,20 @@ import { Manzana, Predio } from '../../core/models/models';
     }
     .tool-divider { width: 1px; height: 20px; background: var(--border-default); }
 
-    .legend { display: flex; gap: var(--space-3); }
-    .legend-item { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--text-secondary); }
-    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .legend { display: flex; gap: var(--space-1); flex-wrap: wrap; }
+    .legend-item {
+      display: flex; align-items: center; gap: 4px; font-size: var(--text-xs); color: var(--text-secondary);
+      padding: 4px 8px; border: 1px solid var(--border-light); border-radius: var(--radius-md);
+      background: var(--bg-surface); cursor: pointer; transition: all var(--transition-fast);
+      &:hover { background: var(--bg-hover); border-color: var(--border-default); }
+      &.dimmed { opacity: 0.4; border-style: dashed; }
+    }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .legend-count { font-weight: 600; color: var(--text-primary); margin-left: 2px; }
 
     .map-wrapper { flex: 1; position: relative; border-radius: var(--radius-xl); overflow: hidden; border: 1px solid var(--border-default); }
     .map-canvas { width: 100%; height: 100%; }
+    .map-stats { position: absolute; bottom: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.75); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px; }
 
     .info-panel {
       position: absolute; right: var(--space-4); top: var(--space-4); width: 280px;
@@ -242,12 +265,23 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
   predios = signal<Predio[]>([]);
   selectedManzana = signal<Manzana | null>(null);
   selectedPredio = signal<Predio | null>(null);
-  showManzanas = true;
+  showManzanas = false;
   showPredios = true;
+  showSpecialMarkers = signal(true);
   showVisitaModal = signal(false);
   savingVisita = signal(false);
   searchTerm = '';
   visitaForm: any = { idPredio: null, estadoVisita: 'POSITIVO', viviendaTrabajable: true, observaciones: '' };
+
+  statusFilters: Record<string, boolean> = {
+    'POSITIVO': true,
+    'NEGATIVO': true,
+    'INDECISO': true,
+    'EN_BLANCO': true,
+    'NO_TRABAJABLE': true,
+  };
+
+  statusCounts = signal<Record<string, number>>({});
 
   constructor(private manzanaService: ManzanaService, private predioService: PredioService, private visitaService: VisitaService, private route: ActivatedRoute) {}
 
@@ -288,36 +322,51 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
   private initMap() {
     this.map = L.map('map').setView([0.811288, -77.716749], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM', maxZoom: 19 }).addTo(this.map);
-    this.manzanaLayer = L.layerGroup().addTo(this.map);
+    this.manzanaLayer = L.layerGroup();
     this.predioLayer = L.layerGroup().addTo(this.map);
   }
 
   loadManzanas() {
     this.manzanaService.listarConPoligono().subscribe({
       next: (r) => {
-        console.log('Manzanas response:', r);
         if (r.exitoso) { this.manzanas.set(r.datos); this.renderManzanas(); }
       },
-      error: (err) => {
-        console.error('Error cargando manzanas:', err);
-        this.manzanas.set([]);
-        this.renderManzanas();
-      }
+      error: () => { this.manzanas.set([]); }
     });
   }
 
   loadPredios() {
     this.predioService.listarTodosActivos().subscribe({
       next: (r) => {
-        console.log('Predios response:', r);
-        if (r.exitoso) { this.predios.set(r.datos); this.renderPredios(); }
+        if (r.exitoso) {
+          this.predios.set(r.datos);
+          this.computeStatusCounts();
+          this.renderPredios();
+        }
       },
-      error: (err) => {
-        console.error('Error cargando predios:', err);
-        this.predios.set([]);
-        this.renderPredios();
-      }
+      error: () => { this.predios.set([]); }
     });
+  }
+
+  private computeStatusCounts() {
+    const counts: Record<string, number> = {
+      'POSITIVO': 0, 'NEGATIVO': 0, 'INDECISO': 0, 'EN_BLANCO': 0, 'NO_TRABAJABLE': 0
+    };
+    this.predios().forEach(p => {
+      const estado = p.estadoVisita || 'EN_BLANCO';
+      if (counts[estado] !== undefined) counts[estado]++;
+      else counts['EN_BLANCO']++;
+    });
+    this.statusCounts.set(counts);
+  }
+
+  isStatusVisible(key: string): boolean {
+    return this.statusFilters[key] ?? true;
+  }
+
+  toggleStatusFilter(key: string) {
+    this.statusFilters[key] = !this.statusFilters[key];
+    this.renderPredios();
   }
 
   private renderManzanas() {
@@ -327,7 +376,6 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
         try {
           const geo = JSON.parse(m.poligonoGeoJSON);
           const allRings = this.extractAllPolygonRings(geo);
-          console.log(`Manzana "${m.nombre}" rings:`, allRings.length);
           if (allRings.length > 0) {
             const polys = allRings.map(ring =>
               L.polygon(ring, { color: '#2b4d2b', weight: 2, fillColor: '#3d6b3d', fillOpacity: 0.08 })
@@ -409,7 +457,11 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
 
   private renderPredios() {
     this.predioLayer.clearLayers();
+    const showMarkers = this.showSpecialMarkers();
     this.predios().forEach(p => {
+      const estado = p.estadoVisita || 'EN_BLANCO';
+      if (!this.isStatusVisible(estado)) return;
+
       if (p.poligonoGeoJSON) {
         try {
           const geo = JSON.parse(p.poligonoGeoJSON);
@@ -420,11 +472,39 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
               L.polygon(ring, { color, weight: 1.5, fillColor: color, fillOpacity: 0.15 })
             );
             const group = L.layerGroup(polys);
+            let popupHtml = `<b>${p.claveCatastral}</b><br>${p.propietario || ''}<br><span style="color:${color}">${p.estadoVisita || 'En Blanco'}</span>`;
+            if (showMarkers && p.estrella) popupHtml += '<br><span style="color:#F59E0B">&#9733; Estrella</span>';
+            if (showMarkers && p.apoyaAlcalde) popupHtml += '<br><span style="color:#2563EB">&#9786; Apoya Alcalde</span>';
             group.eachLayer(layer => {
-              (layer as L.Polygon).bindPopup(`<b>${p.claveCatastral}</b><br>${p.propietario || ''}<br><span style="color:${color}">${p.estadoVisita || 'En Blanco'}</span>`);
+              (layer as L.Polygon).bindPopup(popupHtml);
               (layer as L.Polygon).on('click', () => { this.selectedPredio.set(p); this.selectedManzana.set(null); });
             });
             this.predioLayer.addLayer(group);
+            if (showMarkers && p.poligonoGeoJSON) {
+              try {
+                const rings = this.extractAllPolygonRings(geo);
+                if (rings.length > 0 && rings[0].length > 0) {
+                  const centroid = rings[0].reduce((acc: [number, number], c: [number, number]) => [acc[0]+c[0], acc[1]+c[1]], [0, 0]);
+                  const center: [number, number] = [centroid[0]/rings[0].length, centroid[1]/rings[0].length];
+                  if (p.estrella) {
+                    const starIcon = L.divIcon({
+                      className: 'star-marker',
+                      html: '<div style="color:#F59E0B;font-size:18px;text-shadow:0 0 4px rgba(0,0,0,0.5);line-height:1">&#9733;</div>',
+                      iconSize: [20, 20], iconAnchor: [10, 10]
+                    });
+                    L.marker(center, { icon: starIcon }).addTo(this.predioLayer);
+                  }
+                  if (p.apoyaAlcalde) {
+                    const personIcon = L.divIcon({
+                      className: 'person-marker',
+                      html: '<div style="color:#2563EB;font-size:16px;text-shadow:0 0 4px rgba(0,0,0,0.5);line-height:1">&#9786;</div>',
+                      iconSize: [18, 18], iconAnchor: [9, 9]
+                    });
+                    L.marker(center, { icon: personIcon }).addTo(this.predioLayer);
+                  }
+                }
+              } catch (e) { /* skip marker on error */ }
+            }
           }
         } catch (e) {
           console.error(`Error renderizando poligono predio "${p.claveCatastral}":`, e);
@@ -435,6 +515,22 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
         marker.bindPopup(`<b>${p.claveCatastral}</b><br>${p.propietario}<br><span style="color:${color}">${p.estadoVisita || 'En Blanco'}</span>`);
         marker.on('click', () => { this.selectedPredio.set(p); this.selectedManzana.set(null); });
         this.predioLayer.addLayer(marker);
+        if (showMarkers && p.estrella) {
+          const starIcon = L.divIcon({
+            className: 'star-marker',
+            html: '<div style="color:#F59E0B;font-size:18px;text-shadow:0 0 4px rgba(0,0,0,0.5);line-height:1">&#9733;</div>',
+            iconSize: [20, 20], iconAnchor: [10, 10]
+          });
+          L.marker([p.latitud, p.longitud], { icon: starIcon }).addTo(this.predioLayer);
+        }
+        if (showMarkers && p.apoyaAlcalde) {
+          const personIcon = L.divIcon({
+            className: 'person-marker',
+            html: '<div style="color:#2563EB;font-size:16px;text-shadow:0 0 4px rgba(0,0,0,0.5);line-height:1">&#9786;</div>',
+            iconSize: [18, 18], iconAnchor: [9, 9]
+          });
+          L.marker([p.latitud, p.longitud], { icon: personIcon }).addTo(this.predioLayer);
+        }
       }
     });
   }
@@ -450,8 +546,19 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
   }
 
   toggleLayer(layer: string) {
-    if (layer === 'manzanas') { this.showManzanas = !this.showManzanas; this.showManzanas ? this.map.addLayer(this.manzanaLayer) : this.map.removeLayer(this.manzanaLayer); }
-    if (layer === 'predios') { this.showPredios = !this.showPredios; this.showPredios ? this.map.addLayer(this.predioLayer) : this.map.removeLayer(this.predioLayer); }
+    if (layer === 'manzanas') {
+      this.showManzanas = !this.showManzanas;
+      this.showManzanas ? this.map.addLayer(this.manzanaLayer) : this.map.removeLayer(this.manzanaLayer);
+    }
+    if (layer === 'predios') {
+      this.showPredios = !this.showPredios;
+      this.showPredios ? this.map.addLayer(this.predioLayer) : this.map.removeLayer(this.predioLayer);
+    }
+  }
+
+  toggleSpecialMarkers() {
+    this.showSpecialMarkers.update(v => !v);
+    this.renderPredios();
   }
 
   clearSelection() { this.selectedManzana.set(null); this.selectedPredio.set(null); }
@@ -512,7 +619,7 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
 
   verPrediosManzana() {
     const m = this.selectedManzana();
-    if (m) this.predioService.listarPorManzana(m.idManzana!).subscribe({ next: (r) => { if (r.exitoso) { this.predios.set(r.datos); this.renderPredios(); } } });
+    if (m) this.predioService.listarPorManzana(m.idManzana!).subscribe({ next: (r) => { if (r.exitoso) { this.predios.set(r.datos); this.computeStatusCounts(); this.renderPredios(); } } });
   }
 
   registrarVisita() { const p = this.selectedPredio(); if (p) { this.visitaForm.idPredio = p.idPredio; this.showVisitaModal.set(true); } }

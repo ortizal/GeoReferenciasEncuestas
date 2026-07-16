@@ -40,11 +40,11 @@ import { environment } from '../../../environments/environment';
           <div class="modal-header"><h4>{{ editando() ? 'Editar' : 'Nuevo' }} Usuario</h4><button class="modal-close" (click)="cerrarFormulario()"><i class="bi bi-x"></i></button></div>
           <div class="modal-body">
             <div class="form-grid">
-              <div class="form-field"><label>Username *</label><input class="form-input" [(ngModel)]="formData.username"></div>
-              <div class="form-field"><label>Email *</label><input class="form-input" type="email" [(ngModel)]="formData.email"></div>
-              <div class="form-field"><label>Nombre *</label><input class="form-input" [(ngModel)]="formData.nombre"></div>
-              <div class="form-field"><label>Apellido *</label><input class="form-input" [(ngModel)]="formData.apellido"></div>
-              <div class="form-field" *ngIf="!editando()"><label>Contraseña *</label><input class="form-input" type="password" [(ngModel)]="formData.password"></div>
+              <div class="form-field"><label>Username *</label><input class="form-input" [(ngModel)]="formData.username" autocomplete="off"></div>
+              <div class="form-field"><label>Email *</label><input class="form-input" type="email" [(ngModel)]="formData.email" autocomplete="off"></div>
+              <div class="form-field"><label>Nombre *</label><input class="form-input" [(ngModel)]="formData.nombre" autocomplete="off"></div>
+              <div class="form-field"><label>Apellido *</label><input class="form-input" [(ngModel)]="formData.apellido" autocomplete="off"></div>
+              <div class="form-field" *ngIf="!editando()"><label>Contraseña *</label><input class="form-input" type="password" [(ngModel)]="formData.password" autocomplete="new-password"></div>
               <div class="form-field"><label>Rol *</label><select class="form-input" [(ngModel)]="formData.rol"><option value="ADMINISTRADOR">Administrador</option><option value="SUPERVISOR">Supervisor</option><option value="VISITADOR">Visitador</option></select></div>
             </div>
           </div>

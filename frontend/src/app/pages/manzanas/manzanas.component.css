@@ -51,6 +51,9 @@
 .table-premium tbody tr:hover { background: var(--bg-hover) !important; }
 .table-premium tbody tr:not(:last-child) td { border-bottom: 1px solid var(--border-light); }
 .table-premium tbody td { padding: var(--space-3) var(--space-4); font-size: var(--text-sm); vertical-align: middle; }
+.sortable { cursor: pointer; user-select: none; }
+.sortable:hover { color: var(--primary-600); }
+.sortable i { font-size: 0.625rem; margin-left: 2px; }
 .cell-code { font-size: var(--text-xs); background: var(--neutral-100); padding: 0.15em 0.5em; border-radius: var(--radius-sm); font-family: var(--font-mono); }
 .cell-primary { font-weight: 500; color: var(--text-primary); }
 .row-dropdown { position: relative; display: inline-block; }

@@ -49,7 +49,7 @@ public interface PredioRepository extends JpaRepository<Predio, Long> {
     @Query("SELECT p.claveCatastral FROM Predio p")
     List<String> findAllClaveCatastral();
 
-    @Query(value = "SELECT p.id_predio, v.estado_visita, v.fecha_creacion " +
+    @Query(value = "SELECT p.id_predio, v.estado_visita, v.fecha_creacion, v.apoya_alcalde, v.estrella " +
            "FROM predios p LEFT JOIN visitas v ON v.id_predio = p.id_predio " +
            "AND v.fecha_creacion = (SELECT MAX(v2.fecha_creacion) FROM visitas v2 WHERE v2.id_predio = p.id_predio) " +
            "WHERE p.activo = true", nativeQuery = true)

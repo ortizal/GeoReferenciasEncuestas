@@ -18,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -92,13 +93,21 @@ public class VisitaController {
     }
 
     @GetMapping
-    @Operation(summary = "Buscar visitas con paginación")
+    @Operation(summary = "Buscar visitas con paginación y filtros")
     public ResponseEntity<ApiResponse<Page<VisitaDTO>>> buscar(
             @RequestParam(defaultValue = "") String busqueda,
+            @RequestParam(defaultValue = "") String estado,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate hasta,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "fechaVisita") String sortField,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        java.time.LocalDateTime desdeLdt = desde != null ? desde.atStartOfDay() : null;
+        java.time.LocalDateTime hastaLdt = hasta != null ? hasta.plusDays(1).atStartOfDay() : null;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
         Page<VisitaDTO> resultado = visitaService.buscar(
-                busqueda, PageRequest.of(page, size, Sort.by("fechaVisita").descending()));
+                busqueda, estado, desdeLdt, hastaLdt, PageRequest.of(page, size, sort));
         return ResponseEntity.ok(ApiResponse.exito(resultado, "Visitas obtenidas"));
     }
 

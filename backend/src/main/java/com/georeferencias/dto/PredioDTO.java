@@ -52,4 +52,6 @@ public class PredioDTO {
     private String estadoVisita;
     private LocalDateTime fechaUltimaVisita;
     private Integer totalVisitas;
+    private Boolean apoyaAlcalde;
+    private Boolean estrella;
 }

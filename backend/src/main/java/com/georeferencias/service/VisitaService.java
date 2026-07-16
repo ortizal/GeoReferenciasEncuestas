@@ -20,7 +20,7 @@ public interface VisitaService {
     List<VisitaDTO> listarPorUsuario(Long idUsuario);
     List<VisitaDTO> listarPorManzana(Long idManzana);
     List<VisitaDTO> listarPorEstado(EstadoVisita estado);
-    Page<VisitaDTO> buscar(String busqueda, Pageable pageable);
+    Page<VisitaDTO> buscar(String busqueda, String estado, LocalDateTime desde, LocalDateTime hasta, Pageable pageable);
     Map<String, Long> contarPorEstado();
     Map<String, Object> obtenerEstadisticas();
     List<Map<String, Object>> obtenerVisitasPorUsuario(LocalDateTime inicio, LocalDateTime fin);

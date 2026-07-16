@@ -23,7 +23,7 @@
     <div class="filter-bar">
       <div class="search-box">
         <i class="bi bi-search"></i>
-        <input type="text" placeholder="Buscar manzana..." [(ngModel)]="busqueda" (keyup.enter)="buscar()">
+        <input type="text" placeholder="Buscar manzana..." [(ngModel)]="busqueda" (keyup.enter)="buscar()" autocomplete="off">
       </div>
       <select class="filter-select" [(ngModel)]="filtroActivo" (change)="buscar()">
         <option [value]="true">Activos</option>
@@ -34,7 +34,13 @@
     <div class="card-premium-body no-padding">
       <div class="table-responsive">
         <table class="table-premium">
-          <thead><tr><th>Clave</th><th>Nombre</th><th>Sector</th><th>Barrio</th><th>Predios</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr>
+            <th class="sortable" (click)="toggleSort('claveCatastralManzana')">Clave <i class="bi" [ngClass]="sortIcon('claveCatastralManzana')"></i></th>
+            <th class="sortable" (click)="toggleSort('nombre')">Nombre <i class="bi" [ngClass]="sortIcon('nombre')"></i></th>
+            <th class="sortable" (click)="toggleSort('sector')">Sector <i class="bi" [ngClass]="sortIcon('sector')"></i></th>
+            <th class="sortable" (click)="toggleSort('barrio')">Barrio <i class="bi" [ngClass]="sortIcon('barrio')"></i></th>
+            <th>Predios</th><th>Estado</th><th>Acciones</th>
+          </tr></thead>
           <tbody>
             <tr *ngFor="let m of manzanas()">
               <td><code class="cell-code">{{ m.claveCatastralManzana }}</code></td>
@@ -77,10 +83,10 @@
       <div class="modal-header"><h4>{{ editando() ? 'Editar' : 'Nueva' }} Manzana</h4><button class="modal-close" (click)="cerrarFormulario()"><i class="bi bi-x"></i></button></div>
       <div class="modal-body">
         <div class="form-grid">
-          <div class="form-field"><label>Clave Catastral *</label><input class="form-input" [(ngModel)]="formData.claveCatastralManzana" placeholder="Ej: MZ-001"></div>
-          <div class="form-field"><label>Nombre *</label><input class="form-input" [(ngModel)]="formData.nombre" placeholder="Nombre de la manzana"></div>
-          <div class="form-field"><label>Sector</label><input class="form-input" [(ngModel)]="formData.sector" placeholder="Sector"></div>
-          <div class="form-field"><label>Barrio</label><input class="form-input" [(ngModel)]="formData.barrio" placeholder="Barrio"></div>
+          <div class="form-field"><label>Clave Catastral *</label><input class="form-input" [(ngModel)]="formData.claveCatastralManzana" placeholder="Ej: MZ-001" autocomplete="off"></div>
+          <div class="form-field"><label>Nombre *</label><input class="form-input" [(ngModel)]="formData.nombre" placeholder="Nombre de la manzana" autocomplete="off"></div>
+          <div class="form-field"><label>Sector</label><input class="form-input" [(ngModel)]="formData.sector" placeholder="Sector" autocomplete="off"></div>
+          <div class="form-field"><label>Barrio</label><input class="form-input" [(ngModel)]="formData.barrio" placeholder="Barrio" autocomplete="off"></div>
           <div class="form-field full-width">
             <label>Polígono (GeoJSON)</label>
             <div class="polygon-input-group">

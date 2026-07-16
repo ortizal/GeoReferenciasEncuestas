@@ -21,12 +21,18 @@
   <div class="card-premium">
     <div class="filter-bar">
       <select class="filter-select" [(ngModel)]="filtroManzana" (change)="buscar()"><option value="">Todas las manzanas</option><option *ngFor="let m of manzanas()" [value]="m.idManzana">{{ m.nombre }}</option></select>
-      <div class="search-box"><i class="bi bi-search"></i><input type="text" placeholder="Buscar predio..." [(ngModel)]="busqueda" (keyup.enter)="buscar()"></div>
+      <div class="search-box"><i class="bi bi-search"></i><input type="text" placeholder="Buscar predio..." [(ngModel)]="busqueda" (keyup.enter)="buscar()" autocomplete="off"></div>
     </div>
     <div class="card-premium-body no-padding">
       <div class="table-responsive">
         <table class="table-premium">
-          <thead><tr><th>Clave</th><th>Propietario</th><th>Dirección</th><th>Manzana</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr>
+            <th class="sortable" (click)="toggleSort('claveCatastral')">Clave <i class="bi" [ngClass]="sortIcon('claveCatastral')"></i></th>
+            <th class="sortable" (click)="toggleSort('propietario')">Propietario <i class="bi" [ngClass]="sortIcon('propietario')"></i></th>
+            <th class="sortable" (click)="toggleSort('direccion')">Dirección <i class="bi" [ngClass]="sortIcon('direccion')"></i></th>
+            <th>Manzana</th>
+            <th>Estado</th><th>Acciones</th>
+          </tr></thead>
           <tbody>
             <tr *ngFor="let p of predios()">
               <td><code class="cell-code">{{ p.claveCatastral }}</code></td>
@@ -74,10 +80,10 @@
           <div class="form-section-body" *ngIf="formSections().identificacion">
             <div class="form-grid">
               <div class="form-field"><label>Manzana *</label><select class="form-input" [(ngModel)]="formData.idManzana"><option value="">Seleccione</option><option *ngFor="let m of manzanas()" [value]="m.idManzana">{{ m.nombre }}</option></select></div>
-              <div class="form-field"><label>Clave Catastral *</label><input class="form-input" [(ngModel)]="formData.claveCatastral"></div>
-              <div class="form-field"><label>Cod Predio</label><input class="form-input" [(ngModel)]="formData.codPredio"></div>
-              <div class="form-field"><label>Nro Predial</label><input class="form-input" [(ngModel)]="formData.nroPredial"></div>
-              <div class="form-field"><label>Cedula Catastral</label><input class="form-input" [(ngModel)]="formData.cedulaCatastral"></div>
+              <div class="form-field"><label>Clave Catastral *</label><input class="form-input" [(ngModel)]="formData.claveCatastral" autocomplete="off"></div>
+              <div class="form-field"><label>Cod Predio</label><input class="form-input" [(ngModel)]="formData.codPredio" autocomplete="off"></div>
+              <div class="form-field"><label>Nro Predial</label><input class="form-input" [(ngModel)]="formData.nroPredial" autocomplete="off"></div>
+              <div class="form-field"><label>Cedula Catastral</label><input class="form-input" [(ngModel)]="formData.cedulaCatastral" autocomplete="off"></div>
             </div>
           </div>
         </div>
@@ -90,11 +96,11 @@
           </div>
           <div class="form-section-body" *ngIf="formSections().propietario">
             <div class="form-grid">
-              <div class="form-field"><label>Propietario</label><input class="form-input" [(ngModel)]="formData.propietario"></div>
-              <div class="form-field"><label>Teléfono Propietario</label><input class="form-input" [(ngModel)]="formData.telefonoPropietario"></div>
-              <div class="form-field"><label>Teléfono</label><input class="form-input" [(ngModel)]="formData.telefono"></div>
-              <div class="form-field full-width"><label>Dirección *</label><input class="form-input" [(ngModel)]="formData.direccion"></div>
-              <div class="form-field full-width"><label>Referencia</label><input class="form-input" [(ngModel)]="formData.referencia"></div>
+              <div class="form-field"><label>Propietario</label><input class="form-input" [(ngModel)]="formData.propietario" autocomplete="off"></div>
+              <div class="form-field"><label>Teléfono Propietario</label><input class="form-input" [(ngModel)]="formData.telefonoPropietario" autocomplete="off"></div>
+              <div class="form-field"><label>Teléfono</label><input class="form-input" [(ngModel)]="formData.telefono" autocomplete="off"></div>
+              <div class="form-field full-width"><label>Dirección *</label><input class="form-input" [(ngModel)]="formData.direccion" autocomplete="off"></div>
+              <div class="form-field full-width"><label>Referencia</label><input class="form-input" [(ngModel)]="formData.referencia" autocomplete="off"></div>
             </div>
           </div>
         </div>
@@ -107,13 +113,13 @@
           </div>
           <div class="form-section-body" *ngIf="formSections().caracteristicas">
             <div class="form-grid">
-              <div class="form-field"><label>Uso</label><input class="form-input" [(ngModel)]="formData.uso"></div>
+              <div class="form-field"><label>Uso</label><input class="form-input" [(ngModel)]="formData.uso" autocomplete="off"></div>
               <div class="form-field"><label>Estado</label><select class="form-input" [(ngModel)]="formData.estado"><option value="">Seleccione</option><option value="POSITIVO">Positivo</option><option value="NEGATIVO">Negativo</option><option value="INDECISO">Indeciso</option></select></div>
-              <div class="form-field full-width"><label>Servicios Básicos</label><input class="form-input" [(ngModel)]="formData.serviciosBasicos"></div>
-              <div class="form-field"><label>Area Terreno (m²)</label><input class="form-input" type="number" [(ngModel)]="formData.areaTerreno" step="0.01"></div>
-              <div class="form-field"><label>Frentes (m)</label><input class="form-input" type="number" [(ngModel)]="formData.frentes" step="0.01"></div>
-              <div class="form-field"><label>Nro Pisos</label><input class="form-input" type="number" [(ngModel)]="formData.nroPisos"></div>
-              <div class="form-field"><label>Area Construida (m²)</label><input class="form-input" type="number" [(ngModel)]="formData.areaConstruccion" step="0.01"></div>
+              <div class="form-field full-width"><label>Servicios Básicos</label><input class="form-input" [(ngModel)]="formData.serviciosBasicos" autocomplete="off"></div>
+              <div class="form-field"><label>Area Terreno (m²)</label><input class="form-input" type="number" [(ngModel)]="formData.areaTerreno" step="0.01" autocomplete="off"></div>
+              <div class="form-field"><label>Frentes (m)</label><input class="form-input" type="number" [(ngModel)]="formData.frentes" step="0.01" autocomplete="off"></div>
+              <div class="form-field"><label>Nro Pisos</label><input class="form-input" type="number" [(ngModel)]="formData.nroPisos" autocomplete="off"></div>
+              <div class="form-field"><label>Area Construida (m²)</label><input class="form-input" type="number" [(ngModel)]="formData.areaConstruccion" step="0.01" autocomplete="off"></div>
             </div>
           </div>
         </div>
@@ -126,10 +132,10 @@
           </div>
           <div class="form-section-body" *ngIf="formSections().dimensiones">
             <div class="form-grid form-grid-4">
-              <div class="form-field"><label>Norte (m)</label><input class="form-input" type="number" [(ngModel)]="formData.norte" step="0.01"></div>
-              <div class="form-field"><label>Sur (m)</label><input class="form-input" type="number" [(ngModel)]="formData.sur" step="0.01"></div>
-              <div class="form-field"><label>Este (m)</label><input class="form-input" type="number" [(ngModel)]="formData.este" step="0.01"></div>
-              <div class="form-field"><label>Oeste (m)</label><input class="form-input" type="number" [(ngModel)]="formData.oeste" step="0.01"></div>
+              <div class="form-field"><label>Norte (m)</label><input class="form-input" type="number" [(ngModel)]="formData.norte" step="0.01" autocomplete="off"></div>
+              <div class="form-field"><label>Sur (m)</label><input class="form-input" type="number" [(ngModel)]="formData.sur" step="0.01" autocomplete="off"></div>
+              <div class="form-field"><label>Este (m)</label><input class="form-input" type="number" [(ngModel)]="formData.este" step="0.01" autocomplete="off"></div>
+              <div class="form-field"><label>Oeste (m)</label><input class="form-input" type="number" [(ngModel)]="formData.oeste" step="0.01" autocomplete="off"></div>
             </div>
           </div>
         </div>
@@ -142,8 +148,8 @@
           </div>
           <div class="form-section-body" *ngIf="formSections().ubicacion">
             <div class="form-grid">
-              <div class="form-field"><label>Latitud</label><input class="form-input" type="number" [(ngModel)]="formData.latitud" step="0.00000001"></div>
-              <div class="form-field"><label>Longitud</label><input class="form-input" type="number" [(ngModel)]="formData.longitud" step="0.00000001"></div>
+              <div class="form-field"><label>Latitud</label><input class="form-input" type="number" [(ngModel)]="formData.latitud" step="0.00000001" autocomplete="off"></div>
+              <div class="form-field"><label>Longitud</label><input class="form-input" type="number" [(ngModel)]="formData.longitud" step="0.00000001" autocomplete="off"></div>
               <div class="form-field full-width">
                 <button class="btn-map-select" type="button" (click)="abrirMapaSelector()" title="Seleccionar ubicación en el mapa">
                   <i class="bi bi-geo-alt"></i> Seleccionar en Mapa

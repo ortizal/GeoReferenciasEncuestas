@@ -12,11 +12,16 @@ export class VisitaService {
 
   constructor(private http: HttpClient) {}
 
-  buscar(busqueda: string = '', page: number = 0, size: number = 10): Observable<ApiResponse<PaginatedResponse<Visita>>> {
+  buscar(busqueda: string = '', page: number = 0, size: number = 20, estado: string = '', desde: string = '', hasta: string = '', sortField: string = 'fechaVisita', sortDir: string = 'desc'): Observable<ApiResponse<PaginatedResponse<Visita>>> {
     let params = new HttpParams()
       .set('busqueda', busqueda)
       .set('page', page.toString())
-      .set('size', size.toString());
+      .set('size', size.toString())
+      .set('sortField', sortField)
+      .set('sortDir', sortDir);
+    if (estado) params = params.set('estado', estado);
+    if (desde) params = params.set('desde', desde);
+    if (hasta) params = params.set('hasta', hasta);
     return this.http.get<ApiResponse<PaginatedResponse<Visita>>>(this.apiUrl, { params });
   }
 

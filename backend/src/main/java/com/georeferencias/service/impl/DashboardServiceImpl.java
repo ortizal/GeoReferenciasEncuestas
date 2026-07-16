@@ -44,6 +44,9 @@ public class DashboardServiceImpl implements DashboardService {
         Double porcentajeCobertura = totalPredios > 0 ?
                 (double) totalVisitas / totalPredios * 100 : 0.0;
 
+        Long apoyosAlcalde = visitaRepository.countApoyaAlcalde();
+        Long estrellas = visitaRepository.countEstrellas();
+
         List<Map<String, Object>> visitasPorMes = obtenerVisitasPorMes();
         List<Map<String, Object>> visitasPorDia = obtenerVisitasPorDia();
         List<Map<String, Object>> visitasPorUsuario = obtenerVisitasPorUsuario();
@@ -62,6 +65,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .noTrabajables(conteoPorEstado.getOrDefault(EstadoVisita.NO_TRABAJABLE.name(), 0L))
                 .rechazadas(conteoPorEstado.getOrDefault(EstadoVisita.RECHAZADA.name(), 0L))
                 .finalizadas(conteoPorEstado.getOrDefault(EstadoVisita.FINALIZADA.name(), 0L))
+                .apoyosAlcalde(apoyosAlcalde)
+                .estrellas(estrellas)
                 .porcentajeCobertura(porcentajeCobertura)
                 .visitasPorMes(visitasPorMes)
                 .visitasPorDia(visitasPorDia)
@@ -161,6 +166,42 @@ public class DashboardServiceImpl implements DashboardService {
             resultado.add(item);
         }
 
+        return resultado;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> topManzanasByPositivos() {
+        List<Object[]> datos = visitaRepository.topManzanasByPositivos();
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        int limite = Math.min(datos.size(), 10);
+        for (int i = 0; i < limite; i++) {
+            Object[] fila = datos.get(i);
+            Map<String, Object> item = new HashMap<>();
+            item.put("idManzana", fila[0]);
+            item.put("nombre", fila[1]);
+            item.put("total", fila[2]);
+            resultado.add(item);
+        }
+        return resultado;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> topManzanasByArEstrellas() {
+        List<Object[]> datos = visitaRepository.topManzanasByArEstrellas();
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        int limite = Math.min(datos.size(), 10);
+        for (int i = 0; i < limite; i++) {
+            Object[] fila = datos.get(i);
+            Map<String, Object> item = new HashMap<>();
+            item.put("idManzana", fila[0]);
+            item.put("nombre", fila[1]);
+            item.put("arCount", fila[2]);
+            item.put("estrellaCount", fila[3]);
+            item.put("total", fila[4]);
+            resultado.add(item);
+        }
         return resultado;
     }
 }
