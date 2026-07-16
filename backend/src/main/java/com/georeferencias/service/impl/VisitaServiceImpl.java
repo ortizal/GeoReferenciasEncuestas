@@ -19,10 +19,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -46,6 +50,7 @@ public class VisitaServiceImpl implements VisitaService {
     private final ManzanaRepository manzanaRepository;
     private final UsuarioRepository usuarioRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
@@ -174,7 +179,55 @@ public class VisitaServiceImpl implements VisitaService {
     @Override
     @Transactional(readOnly = true)
     public Page<VisitaDTO> buscar(String busqueda, String estado, LocalDateTime desde, LocalDateTime hasta, Pageable pageable) {
-        return visitaRepository.buscarConFiltros(busqueda, estado, desde, hasta, pageable).map(this::mapToDTO);
+        StringBuilder where = new StringBuilder();
+        where.append("FROM visitas v JOIN predios p ON p.id_predio = v.id_predio JOIN manzanas m ON m.id_manzana = p.id_manzana WHERE 1=1");
+
+        if (busqueda != null && !busqueda.isBlank()) {
+            where.append(" AND (LOWER(p.clave_catastral) LIKE LOWER(:busqueda) OR LOWER(p.propietario) LIKE LOWER(:busqueda) OR LOWER(m.nombre) LIKE LOWER(:busqueda))");
+        }
+        if (estado != null && !estado.isBlank()) {
+            where.append(" AND v.estado_visita = :estado");
+        }
+        if (desde != null) {
+            where.append(" AND v.fecha_visita >= :desde");
+        }
+        if (hasta != null) {
+            where.append(" AND v.fecha_visita <= :hasta");
+        }
+
+        String countSql = "SELECT COUNT(*) " + where;
+        String dataSql = "SELECT v.* " + where + " ORDER BY v.fecha_visita DESC";
+
+        TypedQuery<Long> countQuery = entityManager.createNativeQuery(countSql, Long.class);
+        TypedQuery<?> dataQuery = entityManager.createNativeQuery(dataSql, Visita.class);
+
+        if (busqueda != null && !busqueda.isBlank()) {
+            String likeVal = "%" + busqueda + "%";
+            countQuery.setParameter("busqueda", likeVal);
+            dataQuery.setParameter("busqueda", likeVal);
+        }
+        if (estado != null && !estado.isBlank()) {
+            countQuery.setParameter("estado", estado);
+            dataQuery.setParameter("estado", estado);
+        }
+        if (desde != null) {
+            countQuery.setParameter("desde", desde);
+            dataQuery.setParameter("desde", desde);
+        }
+        if (hasta != null) {
+            countQuery.setParameter("hasta", hasta);
+            dataQuery.setParameter("hasta", hasta);
+        }
+
+        long total = countQuery.getSingleResult();
+
+        dataQuery.setFirstResult((int) pageable.getOffset());
+        dataQuery.setMaxResults(pageable.getPageSize());
+
+        List<Visita> results = dataQuery.getResultList();
+        List<VisitaDTO> dtoList = results.stream().map(this::mapToDTO).collect(Collectors.toList());
+
+        return new PageImpl<>(dtoList, pageable, total);
     }
 
     @Override

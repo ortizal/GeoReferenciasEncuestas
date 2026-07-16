@@ -19,10 +19,10 @@ public interface ManzanaRepository extends JpaRepository<Manzana, Long> {
     Boolean existsByClaveCatastralManzana(String claveCatastralManzana);
 
     @Query("SELECT m FROM Manzana m WHERE m.activo = :activo AND " +
-           "(LOWER(m.claveCatastralManzana) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
-           "LOWER(m.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
-           "LOWER(m.sector) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
-           "LOWER(m.barrio) LIKE LOWER(CONCAT('%', :busqueda, '%')))")
+           "(LOWER(m.claveCatastralManzana) LIKE LOWER('%' || :busqueda || '%') OR " +
+           "LOWER(m.nombre) LIKE LOWER('%' || :busqueda || '%') OR " +
+           "LOWER(m.sector) LIKE LOWER('%' || :busqueda || '%') OR " +
+           "LOWER(m.barrio) LIKE LOWER('%' || :busqueda || '%'))")
     Page<Manzana> buscarConFiltros(@Param("busqueda") String busqueda,
                                     @Param("activo") Boolean activo,
                                     Pageable pageable);

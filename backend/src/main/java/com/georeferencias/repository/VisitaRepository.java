@@ -65,20 +65,6 @@ public interface VisitaRepository extends JpaRepository<Visita, Long> {
     boolean existsByPredioAndFechaBrigada(@Param("idPredio") Long idPredio,
                                            @Param("fechaBrigada") LocalDateTime fechaBrigada);
 
-    @Query("SELECT v FROM Visita v WHERE " +
-           "(:busqueda IS NULL OR :busqueda = '' OR " +
-           "LOWER(v.predio.claveCatastral) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
-           "LOWER(v.predio.propietario) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
-           "LOWER(v.predio.manzana.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%'))) " +
-           "AND (:estado IS NULL OR :estado = '' OR FUNCTION('name', v.estadoVisita) = :estado) " +
-           "AND (:desde IS NULL OR v.fechaVisita >= :desde) " +
-           "AND (:hasta IS NULL OR v.fechaVisita <= :hasta)")
-    Page<Visita> buscarConFiltros(@Param("busqueda") String busqueda,
-                                   @Param("estado") String estado,
-                                   @Param("desde") LocalDateTime desde,
-                                   @Param("hasta") LocalDateTime hasta,
-                                   Pageable pageable);
-
     @Query("SELECT COUNT(v) FROM Visita v WHERE v.apoyaAlcalde = true")
     Long countApoyaAlcalde();
 

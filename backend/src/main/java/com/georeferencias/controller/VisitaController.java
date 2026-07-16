@@ -10,7 +10,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -100,14 +99,11 @@ public class VisitaController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate desde,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate hasta,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "fechaVisita") String sortField,
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @RequestParam(defaultValue = "20") int size) {
         java.time.LocalDateTime desdeLdt = desde != null ? desde.atStartOfDay() : null;
         java.time.LocalDateTime hastaLdt = hasta != null ? hasta.plusDays(1).atStartOfDay() : null;
-        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
         Page<VisitaDTO> resultado = visitaService.buscar(
-                busqueda, estado, desdeLdt, hastaLdt, PageRequest.of(page, size, sort));
+                busqueda, estado, desdeLdt, hastaLdt, PageRequest.of(page, size));
         return ResponseEntity.ok(ApiResponse.exito(resultado, "Visitas obtenidas"));
     }
 

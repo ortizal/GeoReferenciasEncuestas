@@ -277,7 +277,7 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
     'POSITIVO': true,
     'NEGATIVO': true,
     'INDECISO': true,
-    'EN_BLANCO': true,
+    'EN_BLANCO': false,
     'NO_TRABAJABLE': true,
   };
 

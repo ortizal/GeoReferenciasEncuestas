@@ -25,9 +25,9 @@ public interface PredioRepository extends JpaRepository<Predio, Long> {
     List<Predio> findPrediosByManzana(@Param("idManzana") Long idManzana);
 
     @Query("SELECT p FROM Predio p WHERE p.activo = :activo AND " +
-           "(LOWER(p.claveCatastral) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
-           "LOWER(p.propietario) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
-           "LOWER(p.direccion) LIKE LOWER(CONCAT('%', :busqueda, '%')))")
+           "(LOWER(p.claveCatastral) LIKE LOWER('%' || :busqueda || '%') OR " +
+           "LOWER(p.propietario) LIKE LOWER('%' || :busqueda || '%') OR " +
+           "LOWER(p.direccion) LIKE LOWER('%' || :busqueda || '%'))")
     Page<Predio> buscarConFiltros(@Param("busqueda") String busqueda,
                                    @Param("activo") Boolean activo,
                                    Pageable pageable);

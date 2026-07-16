@@ -23,10 +23,10 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Boolean existsByEmail(String email);
 
     @Query("SELECT u FROM Usuario u WHERE u.activo = :activo AND " +
-           "(LOWER(u.username) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
-           "LOWER(u.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
-           "LOWER(u.apellido) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
-           "LOWER(u.email) LIKE LOWER(CONCAT('%', :busqueda, '%')))")
+           "(LOWER(u.username) LIKE LOWER('%' || :busqueda || '%') OR " +
+           "LOWER(u.nombre) LIKE LOWER('%' || :busqueda || '%') OR " +
+           "LOWER(u.apellido) LIKE LOWER('%' || :busqueda || '%') OR " +
+           "LOWER(u.email) LIKE LOWER('%' || :busqueda || '%'))")
     Page<Usuario> buscarConFiltros(@Param("busqueda") String busqueda,
                                     @Param("activo") Boolean activo,
                                     Pageable pageable);

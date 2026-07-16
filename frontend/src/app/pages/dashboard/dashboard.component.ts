@@ -1,9 +1,11 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
+import { PredioService } from '../../core/services/predio.service';
 import { Dashboard } from '../../core/models/models';
+import * as L from 'leaflet';
 
 @Component({
   selector: 'app-dashboard',
@@ -59,6 +61,9 @@ import { Dashboard } from '../../core/models/models';
                 <span class="legend-item"><span class="legend-dot" style="background:#6B7280"></span>En Blanco</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#1C1C1C"></span>No Trabajable</span>
               </div>
+              <button class="maximize-btn" (click)="chartMaximized.set(true)" title="Maximizar gráfico">
+                <i class="bi bi-fullscreen"></i>
+              </button>
             </div>
           </div>
           <div class="card-premium-body" *ngIf="cardsState().chart">
@@ -185,22 +190,57 @@ import { Dashboard } from '../../core/models/models';
             <a class="view-all" routerLink="/mapa" (click)="$event.stopPropagation()">Abrir mapa</a>
           </div>
           <div class="card-premium-body no-padding" *ngIf="cardsState().map">
-            <div class="map-placeholder">
-              <div class="map-grid">
-                <div class="grid-line" *ngFor="let i of [1,2,3,4,5]"></div>
+            <div #miniMap class="mini-map-container"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Maximizado -->
+    <div class="chart-modal-overlay" *ngIf="chartMaximized()" (click)="chartMaximized.set(false)">
+      <div class="chart-modal" (click)="$event.stopPropagation()">
+        <div class="chart-modal-header">
+          <h3><i class="bi bi-graph-up"></i> Visitas por Día</h3>
+          <div class="chart-modal-controls">
+            <div class="date-filters">
+              <label>Desde: <input type="date" [ngModel]="fechaDesde()" (ngModelChange)="onFechaDesdeChange($event)" autocomplete="off"></label>
+              <label>Hasta: <input type="date" [ngModel]="fechaHasta()" (ngModelChange)="onFechaHastaChange($event)" autocomplete="off"></label>
+              <button class="filter-btn" (click)="aplicarFechas()">Aplicar</button>
+            </div>
+            <button class="modal-close-btn" (click)="chartMaximized.set(false)"><i class="bi bi-x-lg"></i></button>
+          </div>
+        </div>
+        <div class="chart-modal-body">
+          <div class="chart-legend modal-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#2563EB"></span>Positivo</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#DC2626"></span>Negativo</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#F59E0B"></span>Indeciso</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#6B7280"></span>En Blanco</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#1C1C1C"></span>No Trabajable</span>
+          </div>
+          <div class="chart-scroll-wrapper modal-chart-scroll">
+            <div class="line-chart modal-line-chart" [style.width.px]="chartScrollWidth()" *ngIf="chartDays().length > 0">
+              <div class="chart-y-axis">
+                <span *ngFor="let v of yLabels()">{{ v }}</span>
               </div>
-              <div class="map-dots">
-                <div class="map-dot" style="top:30%;left:40%;background:#2563EB"></div>
-                <div class="map-dot" style="top:50%;left:60%;background:#DC2626"></div>
-                <div class="map-dot" style="top:70%;left:35%;background:#F59E0B"></div>
-                <div class="map-dot" style="top:45%;left:75%;background:#6B7280"></div>
-                <div class="map-dot" style="top:25%;left:55%;background:#1C1C1C"></div>
-              </div>
-              <div class="map-center-label">
-                <i class="bi bi-map"></i>
-                <span>Mapa GIS Interactivo</span>
+              <div class="chart-area">
+                <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" preserveAspectRatio="none" class="chart-svg">
+                  <line *ngFor="let y of yGridLines()" [attr.x1]="0" [attr.y1]="y" [attr.x2]="chartWidth" [attr.y2]="y" class="grid-line"/>
+                  <polyline *ngFor="let line of chartLines()" [attr.points]="line.points" [attr.stroke]="line.color" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <g *ngFor="let line of chartLines()">
+                    <circle *ngFor="let pt of line.dots; let i = index" [attr.cx]="pt.x" [attr.cy]="pt.y" r="3" [attr.fill]="line.color" class="chart-dot"/>
+                    <text *ngFor="let pt of line.dots; let i = index" [attr.x]="pt.x" [attr.y]="pt.y - 8" [attr.fill]="line.color" class="chart-label" text-anchor="middle">{{ line.values[i] }}</text>
+                  </g>
+                </svg>
+                <div class="chart-x-axis">
+                  <span *ngFor="let d of chartDays(); let i = index" [class.visible]="true">{{ d }}</span>
+                </div>
               </div>
             </div>
+          </div>
+          <div class="chart-empty" *ngIf="chartDays().length === 0">
+            <i class="bi bi-bar-chart-line"></i>
+            <span>No hay datos de visitas por día</span>
           </div>
         </div>
       </div>
@@ -341,33 +381,59 @@ import { Dashboard } from '../../core/models/models';
     .activity-text { font-size: var(--text-sm); color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .activity-meta { font-size: var(--text-xs); color: var(--text-tertiary); }
 
-    .map-placeholder {
-      height: 220px; background: linear-gradient(135deg, var(--bg-surface), var(--bg-hover));
-      position: relative; overflow: hidden;
+    .mini-map-container { height: 260px; width: 100%; }
+
+    .maximize-btn {
+      width: 28px; height: 28px; border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+      background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+      transition: all var(--transition-fast);
+      &:hover { background: var(--primary-50); color: var(--primary-600); border-color: var(--primary-300); }
     }
-    .map-grid { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-evenly; opacity: 0.3; }
-    .grid-line { height: 1px; background: var(--border-default); }
-    .map-dots { position: absolute; inset: 0; }
-    .map-dot {
-      position: absolute; width: 10px; height: 10px; border-radius: 50%;
-      border: 2px solid var(--bg-surface); box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-      animation: pulse 2s infinite;
+    .chart-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; z-index: 3000;
+      animation: fadeIn 0.2s ease-out;
     }
-    .map-center-label {
-      position: absolute; bottom: var(--space-4); left: 50%; transform: translateX(-50%);
-      display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4);
-      background: var(--bg-surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-full); box-shadow: var(--shadow-sm);
-      i { color: var(--primary-600); }
-      span { font-size: var(--text-xs); font-weight: 600; color: var(--text-primary); }
+    .chart-modal {
+      background: var(--bg-surface); border-radius: var(--radius-xl); width: 92vw; height: 85vh;
+      display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
+      animation: fadeInUp 0.2s ease-out;
     }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .chart-modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--border-light);
+      h3 { margin: 0; font-size: var(--text-lg); font-weight: 600; display: flex; align-items: center; gap: var(--space-2);
+        i { color: var(--primary-600); }
+      }
+    }
+    .chart-modal-controls { display: flex; align-items: center; gap: var(--space-4); }
+    .modal-close-btn {
+      width: 32px; height: 32px; border: none; border-radius: var(--radius-md);
+      background: transparent; color: var(--text-secondary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      &:hover { background: var(--bg-hover); color: var(--text-primary); }
+    }
+    .chart-modal-body { flex: 1; padding: var(--space-4) var(--space-6); overflow: hidden; display: flex; flex-direction: column; }
+    .modal-legend { margin-bottom: var(--space-3); justify-content: center; }
+    .modal-chart-scroll { flex: 1; overflow-x: auto; }
+    .modal-line-chart { min-height: 300px; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 1200px) { .kpi-grid, .secondary-grid { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: 1fr; } .dist-card, .map-preview-card, .routes-positivos, .routes-ar, .activity-card { grid-column: 1; grid-row: auto; } }
     @media (max-width: 768px) { .kpi-grid, .secondary-grid { grid-template-columns: 1fr; } }
   `]
 })
 export class DashboardComponent implements OnInit {
+  @ViewChild('miniMap') miniMapRef!: ElementRef<HTMLDivElement>;
+
   dashboard = signal<Dashboard | null>(null);
+
+  private miniMap: L.Map | null = null;
+  private miniMapMarkerLayer: L.LayerGroup = new L.LayerGroup();
+  chartMaximized = signal(false);
 
   kpis: any[] = [];
   secondaryKpis: any[] = [];
@@ -416,7 +482,7 @@ export class DashboardComponent implements OnInit {
     'FINALIZADA': '#059669',
   };
 
-  constructor(private dashboardService: DashboardService, private router: Router) {}
+  constructor(private dashboardService: DashboardService, private predioService: PredioService, private router: Router) {}
 
   ngOnInit() {
     const hoy = new Date();
