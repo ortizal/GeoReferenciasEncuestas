@@ -138,7 +138,7 @@ import { Visita } from '../../core/models/models';
               <span class="stat"><i class="bi bi-x-circle-fill text-danger"></i> {{ countByEstado('NEGATIVO') }} Negativos</span>
               <span class="stat"><i class="bi bi-question-circle-fill text-warning"></i> {{ countByEstado('INDECISO') }} Indecisos</span>
               <span class="stat"><i class="bi bi-clock-fill text-info"></i> {{ countByEstado('PENDIENTE') }} Pendientes</span>
-              <span class="stat"><i class="bi bi-eye-slash"></i> {{ countByEstado('SIN_VISITAR') }} Sin Visitar</span>
+              <span class="stat"><i class="bi bi-eye-slash"></i> {{ countByEstado('EN_BLANCO') }} En Blanco</span>
             </div>
             <div class="preview-no-encontrados" *ngIf="countNoEncontrados() > 0 && !importando()">
               <i class="bi bi-exclamation-triangle text-warning"></i> {{ countNoEncontrados() }} predios no serán importados (clave no encontrada)

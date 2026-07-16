@@ -116,10 +116,10 @@ export interface Dashboard {
   positivos: number;
   negativos: number;
   indecisos: number;
-  sinVisitar: number;
+  enBlanco: number;
   pendientes: number;
   reprogramadas: number;
-  noLocalizadas: number;
+  noTrabajables: number;
   rechazadas: number;
   finalizadas: number;
   porcentajeCobertura: number;
@@ -146,12 +146,12 @@ export interface PaginatedResponse<T> {
 }
 
 export type EstadoVisita = 
-  | 'SIN_VISITAR' 
+  | 'EN_BLANCO' 
   | 'PENDIENTE' 
   | 'POSITIVO' 
   | 'NEGATIVO' 
   | 'INDECISO'
   | 'REPROGRAMADA' 
-  | 'NO_LOCALIZADA' 
+  | 'NO_TRABAJABLE' 
   | 'RECHAZADA' 
   | 'FINALIZADA';

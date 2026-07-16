@@ -32,9 +32,11 @@ public class DashboardController {
     @GetMapping("/visitas-por-dia")
     @Operation(summary = "Obtener visitas por día y estado con filtro de fechas")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerVisitasPorDia(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime desde,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime hasta) {
-        List<Map<String, Object>> resultado = dashboardService.obtenerVisitasPorDia(desde, hasta);
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate hasta) {
+        LocalDateTime desdeLdt = desde != null ? desde.atStartOfDay() : null;
+        LocalDateTime hastaLdt = hasta != null ? hasta.plusDays(1).atStartOfDay() : null;
+        List<Map<String, Object>> resultado = dashboardService.obtenerVisitasPorDia(desdeLdt, hastaLdt);
         return ResponseEntity.ok(ApiResponse.exito(resultado, "Visitas por día obtenidas"));
     }
 

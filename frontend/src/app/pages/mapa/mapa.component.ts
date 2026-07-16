@@ -82,7 +82,7 @@ import { Manzana, Predio } from '../../core/models/models';
               <div class="info-row"><span class="info-label">Propietario</span><span class="info-value">{{ selectedPredio()?.propietario }}</span></div>
               <div class="info-row"><span class="info-label">Dirección</span><span class="info-value">{{ selectedPredio()?.direccion }}</span></div>
               <div class="info-row"><span class="info-label">Estado</span>
-                <span class="badge-premium" [ngClass]="getEstadoBadge(selectedPredio()?.estadoVisita)">{{ selectedPredio()?.estadoVisita || 'Sin Visitar' }}</span>
+                <span class="badge-premium" [ngClass]="getEstadoBadge(selectedPredio()?.estadoVisita)">{{ selectedPredio()?.estadoVisita || 'En Blanco' }}</span>
               </div>
               <div class="info-row"><span class="info-label">Última Visita</span><span class="info-value">{{ selectedPredio()?.fechaUltimaVisita ? (selectedPredio()?.fechaUltimaVisita | date:'dd/MM/yyyy') : '—' }}</span></div>
             </div>
@@ -119,7 +119,7 @@ import { Manzana, Predio } from '../../core/models/models';
                 <option value="NEGATIVO">Negativo</option>
                 <option value="INDECISO">Indeciso</option>
                 <option value="REPROGRAMADA">Reprogramada</option>
-                <option value="NO_LOCALIZADA">No Localizada</option>
+                <option value="NO_TRABAJABLE">No Trabajable</option>
                 <option value="RECHAZADA">Rechazada</option>
               </select>
             </div>
@@ -421,7 +421,7 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
             );
             const group = L.layerGroup(polys);
             group.eachLayer(layer => {
-              (layer as L.Polygon).bindPopup(`<b>${p.claveCatastral}</b><br>${p.propietario || ''}<br><span style="color:${color}">${p.estadoVisita || 'Sin Visitar'}</span>`);
+              (layer as L.Polygon).bindPopup(`<b>${p.claveCatastral}</b><br>${p.propietario || ''}<br><span style="color:${color}">${p.estadoVisita || 'En Blanco'}</span>`);
               (layer as L.Polygon).on('click', () => { this.selectedPredio.set(p); this.selectedManzana.set(null); });
             });
             this.predioLayer.addLayer(group);
@@ -432,7 +432,7 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
       } else if (p.latitud && p.longitud) {
         const color = this.getMarkerColor(p.estadoVisita);
         const marker = L.circleMarker([p.latitud, p.longitud], { radius: 7, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9 });
-        marker.bindPopup(`<b>${p.claveCatastral}</b><br>${p.propietario}<br><span style="color:${color}">${p.estadoVisita || 'Sin Visitar'}</span>`);
+        marker.bindPopup(`<b>${p.claveCatastral}</b><br>${p.propietario}<br><span style="color:${color}">${p.estadoVisita || 'En Blanco'}</span>`);
         marker.on('click', () => { this.selectedPredio.set(p); this.selectedManzana.set(null); });
         this.predioLayer.addLayer(marker);
       }
@@ -444,7 +444,6 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
       case 'POSITIVO': return '#2563EB';
       case 'NEGATIVO': return '#DC2626';
       case 'INDECISO': return '#F59E0B';
-      case 'NO_LOCALIZADA': return '#1C1C1C';
       case 'NO_TRABAJABLE': return '#1C1C1C';
       default: return '#6B7280';
     }

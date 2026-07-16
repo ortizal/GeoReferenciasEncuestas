@@ -38,8 +38,8 @@ public class DashboardServiceImpl implements DashboardService {
             conteoPorEstado.put(estado.name(), visitaRepository.countByEstado(estado));
         }
 
-        Long sinVisitar = totalPredios - totalVisitas;
-        if (sinVisitar < 0) sinVisitar = 0L;
+        Long enBlanco = totalPredios - totalVisitas;
+        if (enBlanco < 0) enBlanco = 0L;
 
         Double porcentajeCobertura = totalPredios > 0 ?
                 (double) totalVisitas / totalPredios * 100 : 0.0;
@@ -56,10 +56,10 @@ public class DashboardServiceImpl implements DashboardService {
                 .positivos(conteoPorEstado.getOrDefault(EstadoVisita.POSITIVO.name(), 0L))
                 .negativos(conteoPorEstado.getOrDefault(EstadoVisita.NEGATIVO.name(), 0L))
                 .indecisos(conteoPorEstado.getOrDefault(EstadoVisita.INDECISO.name(), 0L))
-                .sinVisitar(sinVisitar)
+                .enBlanco(enBlanco)
                 .pendientes(conteoPorEstado.getOrDefault(EstadoVisita.PENDIENTE.name(), 0L))
                 .reprogramadas(conteoPorEstado.getOrDefault(EstadoVisita.REPROGRAMADA.name(), 0L))
-                .noLocalizadas(conteoPorEstado.getOrDefault(EstadoVisita.NO_LOCALIZADA.name(), 0L))
+                .noTrabajables(conteoPorEstado.getOrDefault(EstadoVisita.NO_TRABAJABLE.name(), 0L))
                 .rechazadas(conteoPorEstado.getOrDefault(EstadoVisita.RECHAZADA.name(), 0L))
                 .finalizadas(conteoPorEstado.getOrDefault(EstadoVisita.FINALIZADA.name(), 0L))
                 .porcentajeCobertura(porcentajeCobertura)

@@ -60,7 +60,7 @@ import { Dashboard } from '../../core/models/models';
                 <span class="legend-item"><span class="legend-dot" style="background:#2563EB"></span>Positivo</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#DC2626"></span>Negativo</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#F59E0B"></span>Indeciso</span>
-                <span class="legend-item"><span class="legend-dot" style="background:#6B7280"></span>Sin Visitar</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#6B7280"></span>En Blanco</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#1C1C1C"></span>No Trabajable</span>
               </div>
             </div>
@@ -98,7 +98,10 @@ import { Dashboard } from '../../core/models/models';
           <div class="card-premium-body">
             <div class="dist-list">
               <div class="dist-item" *ngFor="let d of distributions">
-                <div class="dist-color" [style.background]="d.color"></div>
+                <label class="dist-check">
+                  <input type="checkbox" [checked]="isStatusVisible(d.key)" (change)="toggleStatusFilter(d.key)">
+                  <span class="dist-color" [style.background]="d.color"></span>
+                </label>
                 <span class="dist-label">{{ d.label }}</span>
                 <span class="dist-value">{{ d.value() }}</span>
                 <div class="dist-bar">
@@ -246,7 +249,12 @@ import { Dashboard } from '../../core/models/models';
 
     .dist-list { display: flex; flex-direction: column; gap: var(--space-4); }
     .dist-item { display: flex; align-items: center; gap: var(--space-3); }
-    .dist-color { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .dist-check {
+      display: flex; align-items: center; cursor: pointer;
+      input[type="checkbox"] { display: none; }
+      input[type="checkbox"]:not(:checked) + .dist-color { opacity: 0.3; }
+    }
+    .dist-color { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; transition: opacity var(--transition-base); }
     .dist-label { font-size: var(--text-sm); color: var(--text-secondary); flex: 1; }
     .dist-value { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); min-width: 30px; text-align: right; }
     .dist-bar { width: 60px; height: 4px; background: var(--neutral-100); border-radius: 2px; overflow: hidden; }
@@ -297,6 +305,14 @@ export class DashboardComponent implements OnInit {
   secondaryKpis: any[] = [];
   distributions: any[] = [];
 
+  statusFilters = [
+    { key: 'POSITIVO', label: 'Positivos', color: '#2563EB', visible: true },
+    { key: 'NEGATIVO', label: 'Negativos', color: '#DC2626', visible: true },
+    { key: 'INDECISO', label: 'Indecisos', color: '#F59E0B', visible: true },
+    { key: 'EN_BLANCO', label: 'En Blanco', color: '#6B7280', visible: true },
+    { key: 'NO_TRABAJABLE', label: 'No Trabajables', color: '#1C1C1C', visible: true },
+  ];
+
   fechaDesde = signal<string>('');
   fechaHasta = signal<string>('');
 
@@ -312,8 +328,8 @@ export class DashboardComponent implements OnInit {
     'POSITIVO': '#2563EB',
     'NEGATIVO': '#DC2626',
     'INDECISO': '#F59E0B',
-    'SIN_VISITAR': '#6B7280',
-    'NO_LOCALIZADA': '#1C1C1C',
+    'EN_BLANCO': '#6B7280',
+    'NO_TRABAJABLE': '#1C1C1C',
     'PENDIENTE': '#8B5CF6',
     'REPROGRAMADA': '#0EA5E9',
     'RECHAZADA': '#BE123C',
@@ -349,10 +365,13 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  private rawChartData: any[] = [];
+
   cargarVisitasPorDia() {
     this.dashboardService.obtenerVisitasPorDia(this.fechaDesde() || undefined, this.fechaHasta() || undefined).subscribe({
       next: (response) => {
         if (response.exitoso) {
+          this.rawChartData = response.datos;
           this.buildLineChart(response.datos);
         }
       }
@@ -363,6 +382,23 @@ export class DashboardComponent implements OnInit {
   onFechaHastaChange(value: string) { this.fechaHasta.set(value); }
 
   aplicarFechas() { this.cargarVisitasPorDia(); }
+
+  toggleStatusFilter(key: string) {
+    const f = this.statusFilters.find(s => s.key === key);
+    if (f) {
+      f.visible = !f.visible;
+      this.buildKPIs();
+      this.buildLineChartFromData();
+    }
+  }
+
+  isStatusVisible(key: string): boolean {
+    return this.statusFilters.find(s => s.key === key)?.visible ?? true;
+  }
+
+  buildLineChartFromData() {
+    this.buildLineChart(this.rawChartData);
+  }
 
   getStatusColor(estado: string): string {
     return this.statusColors[estado] || '#6B7280';
@@ -378,20 +414,20 @@ export class DashboardComponent implements OnInit {
     ];
 
     this.secondaryKpis = [
-      { label: 'Positivos', value: () => d.positivos || 0, color: '#2563EB' },
-      { label: 'Negativos', value: () => d.negativos || 0, color: '#DC2626' },
-      { label: 'Indecisos', value: () => d.indecisos || 0, color: '#F59E0B' },
-      { label: 'Sin Visitar', value: () => d.sinVisitar || 0, color: '#6B7280' },
-      { label: 'No Localizadas', value: () => d.noLocalizadas || 0, color: '#1C1C1C' },
-    ];
+      { key: 'POSITIVO', label: 'Positivos', value: () => d.positivos || 0, color: '#2563EB' },
+      { key: 'NEGATIVO', label: 'Negativos', value: () => d.negativos || 0, color: '#DC2626' },
+      { key: 'INDECISO', label: 'Indecisos', value: () => d.indecisos || 0, color: '#F59E0B' },
+      { key: 'EN_BLANCO', label: 'En Blanco', value: () => d.enBlanco || 0, color: '#6B7280' },
+      { key: 'NO_TRABAJABLE', label: 'No Trabajables', value: () => d.noTrabajables || 0, color: '#1C1C1C' },
+    ].filter(s => this.isStatusVisible(s.key));
 
     this.distributions = [
-      { label: 'Positivos', value: () => d.positivos || 0, color: '#2563EB' },
-      { label: 'Negativos', value: () => d.negativos || 0, color: '#DC2626' },
-      { label: 'Indecisos', value: () => d.indecisos || 0, color: '#F59E0B' },
-      { label: 'Sin Visitar', value: () => d.sinVisitar || 0, color: '#6B7280' },
-      { label: 'No Localizadas', value: () => d.noLocalizadas || 0, color: '#1C1C1C' },
-    ];
+      { key: 'POSITIVO', label: 'Positivos', value: () => d.positivos || 0, color: '#2563EB' },
+      { key: 'NEGATIVO', label: 'Negativos', value: () => d.negativos || 0, color: '#DC2626' },
+      { key: 'INDECISO', label: 'Indecisos', value: () => d.indecisos || 0, color: '#F59E0B' },
+      { key: 'EN_BLANCO', label: 'En Blanco', value: () => d.enBlanco || 0, color: '#6B7280' },
+      { key: 'NO_TRABAJABLE', label: 'No Trabajables', value: () => d.noTrabajables || 0, color: '#1C1C1C' },
+    ].filter(s => this.isStatusVisible(s.key));
   }
 
   private buildLineChart(data: any[]) {
@@ -408,7 +444,11 @@ export class DashboardComponent implements OnInit {
     this.xLabelStep.set(Math.max(1, Math.floor(dates.length / 7)));
 
     const estados = new Set<string>();
-    data.forEach((d: any) => estados.add(d.estado));
+    data.forEach((d: any) => {
+      if (this.isStatusVisible(d.estado)) {
+        estados.add(d.estado);
+      }
+    });
 
     const estadoData = new Map<string, Map<string, number>>();
     estados.forEach(e => {

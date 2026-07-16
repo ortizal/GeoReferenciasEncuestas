@@ -1,13 +1,13 @@
 package com.georeferencias.enums;
 
 public enum EstadoVisita {
-    SIN_VISITAR("Sin Visitar"),
+    EN_BLANCO("En Blanco"),
     PENDIENTE("Pendiente"),
     POSITIVO("Positivo"),
     NEGATIVO("Negativo"),
     INDECISO("Indeciso"),
     REPROGRAMADA("Reprogramada"),
-    NO_LOCALIZADA("No Localizada"),
+    NO_TRABAJABLE("No Trabajable"),
     RECHAZADA("Rechazada"),
     FINALIZADA("Finalizada");
 

@@ -19,10 +19,10 @@ public class DashboardDTO {
     private Long positivos;
     private Long negativos;
     private Long indecisos;
-    private Long sinVisitar;
+    private Long enBlanco;
     private Long pendientes;
     private Long reprogramadas;
-    private Long noLocalizadas;
+    private Long noTrabajables;
     private Long rechazadas;
     private Long finalizadas;
     private Double porcentajeCobertura;

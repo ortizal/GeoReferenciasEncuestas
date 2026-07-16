@@ -300,10 +300,10 @@ public class VisitaServiceImpl implements VisitaService {
                 visita.setGrupoBrigada(dto.getGrupoBrigada());
                 visita.setNombreBrigada(dto.getNombreBrigada());
                 visita.setFechaBrigada(dto.getFechaBrigada());
-                visita.setComentarioBrigada(dto.getComentarioBrigada());
-                visita.setNumCasasBrigada(dto.getNumCasasBrigada());
-                visita.setParroquia(dto.getParroquia());
-                visita.setBarrio(dto.getBarrio());
+                visita.setComentarioBrigada(truncate(dto.getComentarioBrigada(), 500));
+                visita.setNumCasasBrigada(truncate(dto.getNumCasasBrigada(), 50));
+                visita.setParroquia(truncate(dto.getParroquia(), 100));
+                visita.setBarrio(truncate(dto.getBarrio(), 100));
                 visita.setApoyaAlcalde(dto.getApoyaAlcalde());
                 visita.setEstrella(dto.getEstrella());
 
@@ -428,16 +428,16 @@ public class VisitaServiceImpl implements VisitaService {
                 EstadoVisita estado;
                 boolean viviendaTrabajable;
                 if (brigada1 == null) {
-                    estado = EstadoVisita.SIN_VISITAR;
+                    estado = EstadoVisita.EN_BLANCO;
                     viviendaTrabajable = false;
                 } else {
                     switch (brigada1.trim().toUpperCase()) {
                         case "P": estado = EstadoVisita.POSITIVO; viviendaTrabajable = true; break;
                         case "N": estado = EstadoVisita.NEGATIVO; viviendaTrabajable = true; break;
                         case "D": estado = EstadoVisita.INDECISO; viviendaTrabajable = true; break;
-                        case "NT": estado = EstadoVisita.NO_LOCALIZADA; viviendaTrabajable = false; break;
-                        case "B": estado = EstadoVisita.SIN_VISITAR; viviendaTrabajable = false; break;
-                        default: estado = EstadoVisita.SIN_VISITAR; viviendaTrabajable = false; break;
+                        case "NT": estado = EstadoVisita.NO_TRABAJABLE; viviendaTrabajable = false; break;
+                        case "B": estado = EstadoVisita.EN_BLANCO; viviendaTrabajable = false; break;
+                        default: estado = EstadoVisita.EN_BLANCO; viviendaTrabajable = false; break;
                     }
                 }
 
@@ -555,5 +555,10 @@ public class VisitaServiceImpl implements VisitaService {
                 .estrella(visita.getEstrella())
                 .fechaCreacion(visita.getFechaCreacion())
                 .build();
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null) return null;
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 }
