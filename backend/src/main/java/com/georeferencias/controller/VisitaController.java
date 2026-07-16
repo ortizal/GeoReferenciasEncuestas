@@ -172,8 +172,13 @@ public class VisitaController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> confirmarImportacion(
             @RequestBody List<VisitaDTO> visitas,
             @RequestHeader(value = "X-Import-Session", required = false) String sessionId) {
-        Map<String, Object> resultado = visitaService.confirmarImportacion(visitas, sessionId);
-        return ResponseEntity.ok(ApiResponse.exito(resultado, "Importación completada"));
+        try {
+            Map<String, Object> resultado = visitaService.confirmarImportacion(visitas, sessionId);
+            return ResponseEntity.ok(ApiResponse.exito(resultado, "Importación completada"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Error en importación: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/importar/reporte-no-encontrados")

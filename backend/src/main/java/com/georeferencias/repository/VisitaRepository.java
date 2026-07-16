@@ -64,4 +64,12 @@ public interface VisitaRepository extends JpaRepository<Visita, Long> {
     @Query("SELECT COUNT(v) > 0 FROM Visita v WHERE v.predio.idPredio = :idPredio AND v.fechaBrigada = :fechaBrigada")
     boolean existsByPredioAndFechaBrigada(@Param("idPredio") Long idPredio,
                                            @Param("fechaBrigada") LocalDateTime fechaBrigada);
+
+    @Query("SELECT FUNCTION('DATE', v.fechaCreacion) as fecha, v.estadoVisita, COUNT(v) " +
+           "FROM Visita v " +
+           "WHERE v.fechaCreacion BETWEEN :inicio AND :fin " +
+           "GROUP BY FUNCTION('DATE', v.fechaCreacion), v.estadoVisita " +
+           "ORDER BY FUNCTION('DATE', v.fechaCreacion)")
+    List<Object[]> countVisitasByDiaYEstado(@Param("inicio") LocalDateTime inicio,
+                                             @Param("fin") LocalDateTime fin);
 }

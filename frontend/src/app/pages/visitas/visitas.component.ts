@@ -310,7 +310,7 @@ export class VisitasComponent implements OnInit, OnDestroy {
   archivoFile: File | null = null;
   previewData = signal<Visita[]>([]); previewLimit = signal(50);
   importando = signal(false);
-  importProgress = signal<ImportProgress>({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
+  importProgress = signal<ImportProgress>({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, updated: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
   rowStatusMap = signal<Map<string, string>>(new Map());
   importProgressPercent = signal(0);
 
@@ -357,7 +357,7 @@ export class VisitasComponent implements OnInit, OnDestroy {
   private resetImportState() {
     this.importando.set(false);
     this.rowStatusMap.set(new Map());
-    this.importProgress.set({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
+    this.importProgress.set({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, updated: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
     this.importProgressPercent.set(0);
     if (this.unsubscribeProgress) {
       this.unsubscribeProgress();

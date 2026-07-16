@@ -29,6 +29,7 @@ public class DashboardDTO {
     private List<Map<String, Object>> visitasPorEstado;
     private List<Map<String, Object>> visitasPorMes;
     private List<Map<String, Object>> visitasPorUsuario;
+    private List<Map<String, Object>> visitasPorDia;
     private List<Map<String, Object>> topManzanas;
     private List<Map<String, Object>> visitasRecientes;
 }

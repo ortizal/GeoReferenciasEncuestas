@@ -149,8 +149,33 @@ public class PredioServiceImpl implements PredioService {
     @Override
     @Transactional(readOnly = true)
     public List<PredioDTO> listarTodosActivos() {
+        List<Object[]> datos = predioRepository.findPrediosConEstadoVisita();
+        java.util.Map<Long, String> estadoMap = new java.util.HashMap<>();
+        java.util.Map<Long, java.time.LocalDateTime> fechaMap = new java.util.HashMap<>();
+        for (Object[] fila : datos) {
+            Long idPredio = ((Number) fila[0]).longValue();
+            String estado = fila[1] != null ? fila[1].toString() : null;
+            java.time.LocalDateTime fecha = null;
+            if (fila[2] instanceof java.sql.Timestamp ts) {
+                fecha = ts.toLocalDateTime();
+            } else if (fila[2] instanceof java.time.LocalDateTime ldt) {
+                fecha = ldt;
+            }
+            if (estado != null) {
+                estadoMap.put(idPredio, estado);
+            }
+            if (fecha != null) {
+                fechaMap.put(idPredio, fecha);
+            }
+        }
+
         return predioRepository.findAllActivos().stream()
-                .map(this::mapToDTO)
+                .map(p -> {
+                    PredioDTO dto = mapToDTO(p);
+                    dto.setEstadoVisita(estadoMap.get(p.getIdPredio()));
+                    dto.setFechaUltimaVisita(fechaMap.get(p.getIdPredio()));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 

@@ -45,6 +45,7 @@ public class DashboardServiceImpl implements DashboardService {
                 (double) totalVisitas / totalPredios * 100 : 0.0;
 
         List<Map<String, Object>> visitasPorMes = obtenerVisitasPorMes();
+        List<Map<String, Object>> visitasPorDia = obtenerVisitasPorDia();
         List<Map<String, Object>> visitasPorUsuario = obtenerVisitasPorUsuario();
         List<Map<String, Object>> visitasRecientes = obtenerVisitasRecientes();
 
@@ -63,6 +64,7 @@ public class DashboardServiceImpl implements DashboardService {
                 .finalizadas(conteoPorEstado.getOrDefault(EstadoVisita.FINALIZADA.name(), 0L))
                 .porcentajeCobertura(porcentajeCobertura)
                 .visitasPorMes(visitasPorMes)
+                .visitasPorDia(visitasPorDia)
                 .visitasPorUsuario(visitasPorUsuario)
                 .visitasRecientes(visitasRecientes)
                 .build();
@@ -99,6 +101,30 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         return resultado;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerVisitasPorDia(LocalDateTime inicio, LocalDateTime fin) {
+        if (inicio == null) inicio = YearMonth.now().minusMonths(1).atDay(1).atStartOfDay();
+        if (fin == null) fin = LocalDateTime.now();
+
+        List<Object[]> datos = visitaRepository.countVisitasByDiaYEstado(inicio, fin);
+        List<Map<String, Object>> resultado = new ArrayList<>();
+
+        for (Object[] fila : datos) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("fecha", fila[0].toString());
+            item.put("estado", fila[1].toString());
+            item.put("total", fila[2]);
+            resultado.add(item);
+        }
+
+        return resultado;
+    }
+
+    private List<Map<String, Object>> obtenerVisitasPorDia() {
+        return obtenerVisitasPorDia(null, null);
     }
 
     private List<Map<String, Object>> obtenerVisitasPorUsuario() {

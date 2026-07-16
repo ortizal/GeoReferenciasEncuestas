@@ -6,8 +6,13 @@ import com.georeferencias.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/dashboard")
@@ -22,6 +27,15 @@ public class DashboardController {
     public ResponseEntity<ApiResponse<DashboardDTO>> obtenerDashboard() {
         DashboardDTO resultado = dashboardService.obtenerDashboard();
         return ResponseEntity.ok(ApiResponse.exito(resultado, "Dashboard obtenido"));
+    }
+
+    @GetMapping("/visitas-por-dia")
+    @Operation(summary = "Obtener visitas por día y estado con filtro de fechas")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerVisitasPorDia(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime hasta) {
+        List<Map<String, Object>> resultado = dashboardService.obtenerVisitasPorDia(desde, hasta);
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Visitas por día obtenidas"));
     }
 
     @GetMapping("/usuario/{idUsuario}")

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Dashboard, ApiResponse } from '../models/models';
@@ -14,6 +14,13 @@ export class DashboardService {
 
   obtenerDashboard(): Observable<ApiResponse<Dashboard>> {
     return this.http.get<ApiResponse<Dashboard>>(this.apiUrl);
+  }
+
+  obtenerVisitasPorDia(desde?: string, hasta?: string): Observable<ApiResponse<any[]>> {
+    let params = new HttpParams();
+    if (desde) params = params.set('desde', desde);
+    if (hasta) params = params.set('hasta', hasta);
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/visitas-por-dia`, { params });
   }
 
   obtenerDashboardPorUsuario(idUsuario: number): Observable<ApiResponse<Dashboard>> {

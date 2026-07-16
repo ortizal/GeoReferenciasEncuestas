@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -78,6 +79,7 @@ public class VisitaServiceImpl implements VisitaService {
         visita.setBarrio(dto.getBarrio());
         visita.setApoyaAlcalde(dto.getApoyaAlcalde());
         visita.setEstrella(dto.getEstrella());
+        visita.setFechaCreacion(LocalDateTime.now());
 
         visita = visitaRepository.save(visita);
 
@@ -249,10 +251,11 @@ public class VisitaServiceImpl implements VisitaService {
     @Transactional
     public Map<String, Object> confirmarImportacion(List<VisitaDTO> visitas, String sessionId) {
         int importadas = 0;
-        int duplicadas = 0;
+        int actualizadas = 0;
         int noEncontrados = 0;
         Usuario adminUsuario = usuarioRepository.findById(1L).orElse(null);
         int total = visitas.size();
+        log.info("Iniciando confirmación de importación: {} registros, sessionId={}", total, sessionId);
 
         for (int i = 0; i < visitas.size(); i++) {
             VisitaDTO dto = visitas.get(i);
@@ -260,52 +263,72 @@ public class VisitaServiceImpl implements VisitaService {
 
             if (dto.getIdPredio() == null) {
                 noEncontrados++;
-                sendProgress(sessionId, i + 1, total, rowKey, "NOT_FOUND", importadas, duplicadas, 0, noEncontrados, false);
+                sendProgress(sessionId, i + 1, total, rowKey, "NOT_FOUND", importadas, actualizadas, 0, noEncontrados, false);
                 continue;
             }
 
             Predio predio = predioRepository.findById(dto.getIdPredio()).orElse(null);
             if (predio == null) {
                 noEncontrados++;
-                sendProgress(sessionId, i + 1, total, rowKey, "NOT_FOUND", importadas, duplicadas, 0, noEncontrados, false);
+                sendProgress(sessionId, i + 1, total, rowKey, "NOT_FOUND", importadas, actualizadas, 0, noEncontrados, false);
                 continue;
             }
 
-            if (dto.getFechaBrigada() != null &&
-                visitaRepository.existsByPredioAndFechaBrigada(predio.getIdPredio(), dto.getFechaBrigada())) {
-                duplicadas++;
-                sendProgress(sessionId, i + 1, total, rowKey, "DUPLICATE", importadas, duplicadas, 0, noEncontrados, false);
-                continue;
-            }
+            try {
+                Optional<Visita> visitaExistente = visitaRepository.findFirstByPredioIdPredioOrderByFechaVisitaDesc(predio.getIdPredio());
 
-            Visita visita = new Visita();
-            visita.setPredio(predio);
-            if (adminUsuario != null) {
-                visita.setUsuarioVisitador(adminUsuario);
-            }
-            visita.setFechaVisita(dto.getFechaVisita() != null ? dto.getFechaVisita() : LocalDateTime.now());
-            visita.setEstadoVisita(EstadoVisita.valueOf(dto.getEstadoVisita()));
-            visita.setViviendaTrabajable(dto.getViviendaTrabajable());
-            visita.setGrupoBrigada(dto.getGrupoBrigada());
-            visita.setNombreBrigada(dto.getNombreBrigada());
-            visita.setFechaBrigada(dto.getFechaBrigada());
-            visita.setComentarioBrigada(dto.getComentarioBrigada());
-            visita.setNumCasasBrigada(dto.getNumCasasBrigada());
-            visita.setParroquia(dto.getParroquia());
-            visita.setBarrio(dto.getBarrio());
-            visita.setApoyaAlcalde(dto.getApoyaAlcalde());
-            visita.setEstrella(dto.getEstrella());
+                Visita visita;
+                boolean esActualizacion = false;
+                if (visitaExistente.isPresent()) {
+                    visita = visitaExistente.get();
+                    esActualizacion = true;
+                } else {
+                    visita = new Visita();
+                    visita.setPredio(predio);
+                    if (adminUsuario != null) {
+                        visita.setUsuarioVisitador(adminUsuario);
+                    }
+                    visita.setFechaCreacion(dto.getFechaBrigada() != null ? dto.getFechaBrigada() : LocalDateTime.now());
+                }
 
-            visitaRepository.save(visita);
-            importadas++;
-            sendProgress(sessionId, i + 1, total, rowKey, "IMPORTED", importadas, duplicadas, 0, noEncontrados, false);
+                if (adminUsuario != null) {
+                    visita.setUsuarioVisitador(adminUsuario);
+                }
+                visita.setFechaVisita(dto.getFechaVisita() != null ? dto.getFechaVisita() : LocalDateTime.now());
+                visita.setEstadoVisita(EstadoVisita.valueOf(dto.getEstadoVisita()));
+                visita.setViviendaTrabajable(dto.getViviendaTrabajable() != null ? dto.getViviendaTrabajable() : true);
+                visita.setGrupoBrigada(dto.getGrupoBrigada());
+                visita.setNombreBrigada(dto.getNombreBrigada());
+                visita.setFechaBrigada(dto.getFechaBrigada());
+                visita.setComentarioBrigada(dto.getComentarioBrigada());
+                visita.setNumCasasBrigada(dto.getNumCasasBrigada());
+                visita.setParroquia(dto.getParroquia());
+                visita.setBarrio(dto.getBarrio());
+                visita.setApoyaAlcalde(dto.getApoyaAlcalde());
+                visita.setEstrella(dto.getEstrella());
+
+                visitaRepository.save(visita);
+
+                if (esActualizacion) {
+                    actualizadas++;
+                    sendProgress(sessionId, i + 1, total, rowKey, "UPDATED", importadas, actualizadas, 0, noEncontrados, false);
+                } else {
+                    importadas++;
+                    sendProgress(sessionId, i + 1, total, rowKey, "IMPORTED", importadas, actualizadas, 0, noEncontrados, false);
+                }
+            } catch (Exception e) {
+                log.error("Error procesando fila {}: clave={}, error={}", i + 1, rowKey, e.getMessage(), e);
+                noEncontrados++;
+                sendProgress(sessionId, i + 1, total, rowKey, "ERROR", importadas, actualizadas, 0, noEncontrados, false);
+            }
         }
 
-        sendProgress(sessionId, total, total, "", "COMPLETED", importadas, duplicadas, 0, noEncontrados, true);
+        sendProgress(sessionId, total, total, "", "COMPLETED", importadas, actualizadas, 0, noEncontrados, true);
 
         Map<String, Object> resultado = new java.util.HashMap<>();
         resultado.put("importadas", importadas);
-        resultado.put("duplicadas", duplicadas);
+        resultado.put("actualizadas", actualizadas);
+        resultado.put("noEncontrados", noEncontrados);
         resultado.put("total", total);
         return resultado;
     }
@@ -412,8 +435,8 @@ public class VisitaServiceImpl implements VisitaService {
                         case "P": estado = EstadoVisita.POSITIVO; viviendaTrabajable = true; break;
                         case "N": estado = EstadoVisita.NEGATIVO; viviendaTrabajable = true; break;
                         case "D": estado = EstadoVisita.INDECISO; viviendaTrabajable = true; break;
-                        case "NT": estado = EstadoVisita.SIN_VISITAR; viviendaTrabajable = false; break;
-                        case "B": estado = EstadoVisita.PENDIENTE; viviendaTrabajable = true; break;
+                        case "NT": estado = EstadoVisita.NO_LOCALIZADA; viviendaTrabajable = false; break;
+                        case "B": estado = EstadoVisita.SIN_VISITAR; viviendaTrabajable = false; break;
                         default: estado = EstadoVisita.SIN_VISITAR; viviendaTrabajable = false; break;
                     }
                 }

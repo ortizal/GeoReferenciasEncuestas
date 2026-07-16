@@ -2,7 +2,6 @@ package com.georeferencias.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -80,7 +79,6 @@ public class Visita {
 
     private Boolean estrella;
 
-    @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime fechaCreacion;
 }

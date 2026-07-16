@@ -39,10 +39,11 @@ import { Manzana, Predio } from '../../core/models/models';
         </div>
         <div class="toolbar-right">
           <div class="legend">
-            <span class="legend-item"><span class="legend-dot" style="background:var(--success-500)"></span>Positivo</span>
-            <span class="legend-item"><span class="legend-dot" style="background:var(--danger-500)"></span>Negativo</span>
-            <span class="legend-item"><span class="legend-dot" style="background:var(--warning-500)"></span>Indeciso</span>
-            <span class="legend-item"><span class="legend-dot" style="background:var(--neutral-400)"></span>Sin visita</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#2563EB"></span>Positivo</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#DC2626"></span>Negativo</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#F59E0B"></span>Indeciso</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#6B7280"></span>Sin visita</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#1C1C1C"></span>No trabajable</span>
           </div>
         </div>
       </div>
@@ -439,7 +440,14 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
   }
 
   private getMarkerColor(estado?: string): string {
-    switch (estado) { case 'POSITIVO': return '#22c55e'; case 'NEGATIVO': return '#ef4444'; case 'INDECISO': return '#f59e0b'; default: return '#adb5bd'; }
+    switch (estado) {
+      case 'POSITIVO': return '#2563EB';
+      case 'NEGATIVO': return '#DC2626';
+      case 'INDECISO': return '#F59E0B';
+      case 'NO_LOCALIZADA': return '#1C1C1C';
+      case 'NO_TRABAJABLE': return '#1C1C1C';
+      default: return '#6B7280';
+    }
   }
 
   toggleLayer(layer: string) {

@@ -53,7 +53,7 @@ export class ManzanasComponent implements OnInit {
   previewLoading = signal(false);
   previewError = signal('');
   importResult: any = null;
-  importProgress = signal<ImportProgress>({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
+  importProgress = signal<ImportProgress>({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, updated: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
   importProgressPercent = signal(0);
   rowStatusMap = signal<Map<string, string>>(new Map());
   private unsubscribeProgress: (() => void) | null = null;

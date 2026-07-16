@@ -70,7 +70,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       } else if (error.status === 404) {
         console.error('Recurso no encontrado');
       } else if (error.status >= 500) {
-        console.error('Error del servidor');
+        console.error('Error del servidor:', error.error?.mensaje || error.message);
       }
 
       return throwError(() => error);

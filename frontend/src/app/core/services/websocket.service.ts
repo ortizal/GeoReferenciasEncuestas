@@ -20,6 +20,7 @@ export interface ImportProgress {
   rowKey: string;
   rowStatus: string;
   imported: number;
+  updated: number;
   duplicated: number;
   errors: number;
   notFound: number;

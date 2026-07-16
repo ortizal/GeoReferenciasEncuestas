@@ -125,6 +125,7 @@ export interface Dashboard {
   porcentajeCobertura: number;
   visitasPorEstado: any[];
   visitasPorMes: any[];
+  visitasPorDia: any[];
   visitasPorUsuario: any[];
   visitasRecientes: any[];
 }
