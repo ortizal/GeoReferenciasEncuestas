@@ -24,6 +24,7 @@ export interface ImportProgress {
   duplicated: number;
   errors: number;
   notFound: number;
+  autoCreated: number;
   completed: boolean;
 }
 

@@ -22,8 +22,21 @@ export interface Usuario {
   estado?: string;
   primerLogin?: boolean;
   roles?: string[];
+  grupos?: number[];
   ultimoAcceso?: string;
   activo?: boolean;
+  password?: string;
+}
+
+export interface Grupo {
+  idGrupo?: number;
+  nombre: string;
+  descripcion?: string;
+  color?: string;
+  icono?: string;
+  maximoUsuarios?: number;
+  activo?: boolean;
+  usuariosAsignados?: number;
 }
 
 export interface Manzana {

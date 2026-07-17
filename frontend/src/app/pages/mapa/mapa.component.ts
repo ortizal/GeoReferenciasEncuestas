@@ -100,6 +100,7 @@ import { Manzana, Predio } from '../../core/models/models';
                 <span class="badge-premium" [ngClass]="getEstadoBadge(selectedPredio()?.estadoVisita)">{{ selectedPredio()?.estadoVisita || 'En Blanco' }}</span>
               </div>
               <div class="info-row"><span class="info-label">Última Visita</span><span class="info-value">{{ selectedPredio()?.fechaUltimaVisita ? (selectedPredio()?.fechaUltimaVisita | date:'dd/MM/yyyy') : '—' }}</span></div>
+              <div class="info-row" *ngIf="selectedPredio()?.observaciones"><span class="info-label">Observaciones</span><span class="info-value info-obs">{{ selectedPredio()?.observaciones }}</span></div>
             </div>
             <button class="panel-action-btn primary" (click)="registrarVisita()">
               <i class="bi bi-clipboard-plus"></i> Registrar Visita
@@ -221,6 +222,7 @@ import { Manzana, Predio } from '../../core/models/models';
     .info-row { display: flex; justify-content: space-between; align-items: center; }
     .info-label { font-size: var(--text-xs); color: var(--text-secondary); }
     .info-value { font-size: var(--text-sm); font-weight: 500; color: var(--text-primary); }
+    .info-obs { font-size: var(--text-xs); font-weight: 400; color: var(--text-secondary); word-break: break-word; }
 
     .panel-action-btn {
       width: 100%; padding: var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-md);
@@ -473,6 +475,7 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
             );
             const group = L.layerGroup(polys);
             let popupHtml = `<b>${p.claveCatastral}</b><br>${p.propietario || ''}<br><span style="color:${color}">${p.estadoVisita || 'En Blanco'}</span>`;
+            if (p.observaciones) popupHtml += `<br><span style="color:#6B7280;font-size:0.85em">${p.observaciones}</span>`;
             if (showMarkers && p.estrella) popupHtml += '<br><span style="color:#F59E0B">&#9733; Estrella</span>';
             if (showMarkers && p.apoyaAlcalde) popupHtml += '<br><span style="color:#2563EB">&#9786; Apoya Alcalde</span>';
             group.eachLayer(layer => {
@@ -512,7 +515,9 @@ export class MapaComponent implements AfterViewInit, OnDestroy {
       } else if (p.latitud && p.longitud) {
         const color = this.getMarkerColor(p.estadoVisita);
         const marker = L.circleMarker([p.latitud, p.longitud], { radius: 7, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9 });
-        marker.bindPopup(`<b>${p.claveCatastral}</b><br>${p.propietario}<br><span style="color:${color}">${p.estadoVisita || 'En Blanco'}</span>`);
+        let markerPopup = `<b>${p.claveCatastral}</b><br>${p.propietario}<br><span style="color:${color}">${p.estadoVisita || 'En Blanco'}</span>`;
+        if (p.observaciones) markerPopup += `<br><span style="color:#6B7280;font-size:0.85em">${p.observaciones}</span>`;
+        marker.bindPopup(markerPopup);
         marker.on('click', () => { this.selectedPredio.set(p); this.selectedManzana.set(null); });
         this.predioLayer.addLayer(marker);
         if (showMarkers && p.estrella) {

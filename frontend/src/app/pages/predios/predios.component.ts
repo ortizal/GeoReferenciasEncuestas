@@ -47,7 +47,7 @@ export class PrediosComponent implements OnInit {
   showMapModal = signal(false);
   mapModalData = signal<{ title: string; geoJSON: string | null; latitud: number | null; longitud: number | null; color: string; itemName: string }>({ title: '', geoJSON: null, latitud: null, longitud: null, color: '#adb5bd', itemName: '' });
 
-  importProgress = signal<ImportProgress>({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, updated: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
+  importProgress = signal<ImportProgress>({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, updated: 0, duplicated: 0, errors: 0, notFound: 0, autoCreated: 0, completed: false });
   importProgressPercent = signal(0);
   private unsubscribeProgress: (() => void) | null = null;
 

@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
+import jakarta.persistence.Query;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -198,8 +198,8 @@ public class VisitaServiceImpl implements VisitaService {
         String countSql = "SELECT COUNT(*) " + where;
         String dataSql = "SELECT v.* " + where + " ORDER BY v.fecha_visita DESC";
 
-        TypedQuery<Long> countQuery = entityManager.createNativeQuery(countSql, Long.class);
-        TypedQuery<?> dataQuery = entityManager.createNativeQuery(dataSql, Visita.class);
+        Query countQuery = entityManager.createNativeQuery(countSql);
+        Query dataQuery = entityManager.createNativeQuery(dataSql, Visita.class);
 
         if (busqueda != null && !busqueda.isBlank()) {
             String likeVal = "%" + busqueda + "%";
@@ -219,7 +219,7 @@ public class VisitaServiceImpl implements VisitaService {
             dataQuery.setParameter("hasta", hasta);
         }
 
-        long total = countQuery.getSingleResult();
+        long total = ((Number) countQuery.getSingleResult()).longValue();
 
         dataQuery.setFirstResult((int) pageable.getOffset());
         dataQuery.setMaxResults(pageable.getPageSize());
@@ -308,24 +308,51 @@ public class VisitaServiceImpl implements VisitaService {
         int importadas = 0;
         int actualizadas = 0;
         int noEncontrados = 0;
+        int autoCreados = 0;
         Usuario adminUsuario = usuarioRepository.findById(1L).orElse(null);
         int total = visitas.size();
         log.info("Iniciando confirmación de importación: {} registros, sessionId={}", total, sessionId);
+
+        Manzana defaultManzana = findOrCreateDefaultManzana();
 
         for (int i = 0; i < visitas.size(); i++) {
             VisitaDTO dto = visitas.get(i);
             String rowKey = dto.getClaveCatastralPredio() != null ? dto.getClaveCatastralPredio() : "";
 
-            if (dto.getIdPredio() == null) {
-                noEncontrados++;
-                sendProgress(sessionId, i + 1, total, rowKey, "NOT_FOUND", importadas, actualizadas, 0, noEncontrados, false);
-                continue;
+            Predio predio = null;
+            boolean esAutoCreado = false;
+
+            if (dto.getIdPredio() != null) {
+                predio = predioRepository.findById(dto.getIdPredio()).orElse(null);
             }
 
-            Predio predio = predioRepository.findById(dto.getIdPredio()).orElse(null);
+            if (predio == null && dto.getClaveCatastralPredio() != null && !dto.getClaveCatastralPredio().isBlank()) {
+                predio = predioRepository.findByClaveCatastral(dto.getClaveCatastralPredio()).orElse(null);
+            }
+
+            if (predio == null && dto.getClaveCatastralPredio() != null && !dto.getClaveCatastralPredio().isBlank()) {
+                try {
+                    predio = Predio.builder()
+                            .claveCatastral(dto.getClaveCatastralPredio())
+                            .manzana(defaultManzana)
+                            .propietario("POR VERIFICAR")
+                            .direccion(dto.getParroquia() != null ? dto.getParroquia() : "")
+                            .activo(true)
+                            .fechaCreacion(LocalDateTime.now())
+                            .build();
+                    predio = predioRepository.save(predio);
+                    esAutoCreado = true;
+                    autoCreados++;
+                    log.info("Predio auto-creado: {} (id={})", dto.getClaveCatastralPredio(), predio.getIdPredio());
+                } catch (Exception e) {
+                    log.warn("No se pudo auto-crear predio {}: {}", dto.getClaveCatastralPredio(), e.getMessage());
+                    predio = null;
+                }
+            }
+
             if (predio == null) {
                 noEncontrados++;
-                sendProgress(sessionId, i + 1, total, rowKey, "NOT_FOUND", importadas, actualizadas, 0, noEncontrados, false);
+                sendProgress(sessionId, i + 1, total, rowKey, "NOT_FOUND", importadas, actualizadas, 0, noEncontrados, 0, false);
                 continue;
             }
 
@@ -367,13 +394,13 @@ public class VisitaServiceImpl implements VisitaService {
                 Manzana manzana = predio.getManzana();
                 if (manzana != null) {
                     boolean manzanaModificada = false;
-                    if ((manzana.getSector() == null || manzana.getSector().isBlank())
-                            && dto.getParroquia() != null && !dto.getParroquia().isBlank()) {
+                    if (dto.getParroquia() != null && !dto.getParroquia().isBlank()
+                            && !dto.getParroquia().equalsIgnoreCase(manzana.getSector())) {
                         manzana.setSector(truncate(dto.getParroquia(), 50));
                         manzanaModificada = true;
                     }
-                    if ((manzana.getBarrio() == null || manzana.getBarrio().isBlank())
-                            && dto.getBarrio() != null && !dto.getBarrio().isBlank()) {
+                    if (dto.getBarrio() != null && !dto.getBarrio().isBlank()
+                            && !dto.getBarrio().equalsIgnoreCase(manzana.getBarrio())) {
                         manzana.setBarrio(truncate(dto.getBarrio(), 50));
                         manzanaModificada = true;
                     }
@@ -384,30 +411,45 @@ public class VisitaServiceImpl implements VisitaService {
 
                 if (esActualizacion) {
                     actualizadas++;
-                    sendProgress(sessionId, i + 1, total, rowKey, "UPDATED", importadas, actualizadas, 0, noEncontrados, false);
+                    sendProgress(sessionId, i + 1, total, rowKey, "UPDATED", importadas, actualizadas, 0, noEncontrados, 0, false);
                 } else {
                     importadas++;
-                    sendProgress(sessionId, i + 1, total, rowKey, "IMPORTED", importadas, actualizadas, 0, noEncontrados, false);
+                    String status = esAutoCreado ? "AUTO_CREATED" : "IMPORTED";
+                    sendProgress(sessionId, i + 1, total, rowKey, status, importadas, actualizadas, 0, noEncontrados, autoCreados, false);
                 }
             } catch (Exception e) {
                 log.error("Error procesando fila {}: clave={}, error={}", i + 1, rowKey, e.getMessage(), e);
                 noEncontrados++;
-                sendProgress(sessionId, i + 1, total, rowKey, "ERROR", importadas, actualizadas, 0, noEncontrados, false);
+                sendProgress(sessionId, i + 1, total, rowKey, "ERROR", importadas, actualizadas, 0, noEncontrados, autoCreados, false);
             }
         }
 
-        sendProgress(sessionId, total, total, "", "COMPLETED", importadas, actualizadas, 0, noEncontrados, true);
+        sendProgress(sessionId, total, total, "", "COMPLETED", importadas, actualizadas, 0, noEncontrados, autoCreados, true);
 
         Map<String, Object> resultado = new java.util.HashMap<>();
         resultado.put("importadas", importadas);
         resultado.put("actualizadas", actualizadas);
         resultado.put("noEncontrados", noEncontrados);
+        resultado.put("autoCreados", autoCreados);
         resultado.put("total", total);
         return resultado;
     }
 
+    private Manzana findOrCreateDefaultManzana() {
+        return manzanaRepository.findByClaveCatastralManzana("DEFAULT").orElseGet(() -> {
+            log.info("Creando manzana por defecto para importación automática");
+            Manzana m = Manzana.builder()
+                    .claveCatastralManzana("DEFAULT")
+                    .nombre("SIN MANZANA ASIGNADA")
+                    .activo(true)
+                    .fechaCreacion(LocalDateTime.now())
+                    .build();
+            return manzanaRepository.save(m);
+        });
+    }
+
     private void sendProgress(String sessionId, int current, int total, String rowKey, String rowStatus,
-                              int imported, int duplicated, int errors, int notFound, boolean completed) {
+                              int imported, int duplicated, int errors, int notFound, int autoCreated, boolean completed) {
         if (sessionId == null || sessionId.isBlank()) return;
         try {
             ImportProgressMessage msg = ImportProgressMessage.builder()
@@ -420,6 +462,7 @@ public class VisitaServiceImpl implements VisitaService {
                     .duplicated(duplicated)
                     .errors(errors)
                     .notFound(notFound)
+                    .autoCreated(autoCreated)
                     .completed(completed)
                     .build();
             messagingTemplate.convertAndSend("/topic/import-progress/" + sessionId, msg);
@@ -440,7 +483,7 @@ public class VisitaServiceImpl implements VisitaService {
             headerStyle.setFillForegroundColor((short) 0xDC3545);
             headerStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
 
-            String[] headers = {"#", "Clave Catastral", "Parroquia", "Barrio", "Estado", "Brigada", "Grupo"};
+            String[] headers = {"#", "Clave Catastral", "Parroquia", "Barrio", "Estado", "Brigada", "Grupo", "Motivo"};
             org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
                 org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
@@ -448,6 +491,7 @@ public class VisitaServiceImpl implements VisitaService {
                 cell.setCellStyle(headerStyle);
                 sheet.setColumnWidth(i, 4000);
             }
+            sheet.setColumnWidth(7, 6000);
 
             int rowNum = 1;
             int num = 1;
@@ -461,6 +505,7 @@ public class VisitaServiceImpl implements VisitaService {
                 row.createCell(4).setCellValue(dto.getEstadoVisita() != null ? dto.getEstadoVisita() : "");
                 row.createCell(5).setCellValue(dto.getNombreBrigada() != null ? dto.getNombreBrigada() : "");
                 row.createCell(6).setCellValue(dto.getGrupoBrigada() != null ? dto.getGrupoBrigada() : "");
+                row.createCell(7).setCellValue("Predio no encontrado en base de datos");
             }
 
             java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();

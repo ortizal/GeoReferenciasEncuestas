@@ -38,4 +38,31 @@ export class DashboardService {
   topManzanasArEstrellas(): Observable<ApiResponse<any[]>> {
     return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/top-manzanas-ar-estrellas`);
   }
+
+  obtenerVisitasPorSemana(desde?: string, hasta?: string): Observable<ApiResponse<any[]>> {
+    let params = new HttpParams();
+    if (desde) params = params.set('desde', desde);
+    if (hasta) params = params.set('hasta', hasta);
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/visitas-por-semana`, { params });
+  }
+
+  obtenerVisitasPorMes(desde?: string, hasta?: string): Observable<ApiResponse<any[]>> {
+    let params = new HttpParams();
+    if (desde) params = params.set('desde', desde);
+    if (hasta) params = params.set('hasta', hasta);
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/visitas-por-mes`, { params });
+  }
+
+  obtenerStatsPorGrupo(): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/grupo-stats`);
+  }
+
+  obtenerPrediosPorEstado(estado: string): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/predios-por-estado/${estado}`);
+  }
+
+  obtenerPrediosPorEstadoYFecha(estado: string, fecha: string): Observable<ApiResponse<any[]>> {
+    let params = new HttpParams().set('estado', estado).set('fecha', fecha);
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/predios-por-estado-fecha`, { params });
+  }
 }

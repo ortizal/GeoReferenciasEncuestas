@@ -104,6 +104,7 @@ public class ManzanaServiceImpl implements ManzanaService {
     @Override
     @Transactional(readOnly = true)
     public Page<ManzanaDTO> buscar(String busqueda, Boolean activo, Pageable pageable) {
+        if (activo == null) activo = true;
         return manzanaRepository.buscarConFiltros(busqueda, activo, pageable)
                 .map(this::mapToDTO);
     }

@@ -1,5 +1,6 @@
 package com.georeferencias.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -78,4 +79,14 @@ public class Usuario {
     )
     @Builder.Default
     private Set<Rol> roles = new HashSet<>();
+
+    @JsonIgnore
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "usuario_grupos",
+        joinColumns = @JoinColumn(name = "id_usuario"),
+        inverseJoinColumns = @JoinColumn(name = "id_grupo")
+    )
+    @Builder.Default
+    private Set<Grupo> grupos = new HashSet<>();
 }

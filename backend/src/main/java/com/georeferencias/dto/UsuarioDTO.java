@@ -27,4 +27,6 @@ public class UsuarioDTO {
     private LocalDateTime ultimoAcceso;
     private LocalDateTime fechaCreacion;
     private Set<String> roles;
+    private Set<Long> grupos;
+    private String password;
 }

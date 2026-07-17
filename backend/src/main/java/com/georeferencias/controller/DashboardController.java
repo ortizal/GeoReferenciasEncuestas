@@ -67,4 +67,48 @@ public class DashboardController {
         List<Map<String, Object>> resultado = dashboardService.topManzanasByArEstrellas();
         return ResponseEntity.ok(ApiResponse.exito(resultado, "Top manzanas AR/Estrellas obtenidas"));
     }
+
+    @GetMapping("/visitas-por-semana")
+    @Operation(summary = "Visitas por semana y estado")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerVisitasPorSemana(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate hasta) {
+        LocalDateTime desdeLdt = desde != null ? desde.atStartOfDay() : null;
+        LocalDateTime hastaLdt = hasta != null ? hasta.plusDays(1).atStartOfDay() : null;
+        List<Map<String, Object>> resultado = dashboardService.obtenerVisitasPorSemana(desdeLdt, hastaLdt);
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Visitas por semana obtenidas"));
+    }
+
+    @GetMapping("/visitas-por-mes")
+    @Operation(summary = "Visitas por mes y estado")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerVisitasPorMes(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") java.time.LocalDate hasta) {
+        LocalDateTime desdeLdt = desde != null ? desde.atStartOfDay() : null;
+        LocalDateTime hastaLdt = hasta != null ? hasta.plusDays(1).atStartOfDay() : null;
+        List<Map<String, Object>> resultado = dashboardService.obtenerVisitasPorMes(desdeLdt, hastaLdt);
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Visitas por mes obtenidas"));
+    }
+
+    @GetMapping("/grupo-stats")
+    @Operation(summary = "Estadísticas de visitas por grupo de brigada")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerStatsPorGrupo() {
+        List<Map<String, Object>> resultado = dashboardService.obtenerStatsPorGrupo();
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Estadísticas por grupo obtenidas"));
+    }
+
+    @GetMapping("/predios-por-estado/{estado}")
+    @Operation(summary = "Predios filtrados por estado de visita")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerPrediosPorEstado(@PathVariable String estado) {
+        List<Map<String, Object>> resultado = dashboardService.obtenerPrediosPorEstado(estado);
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Predios por estado obtenidos"));
+    }
+
+    @GetMapping("/predios-por-estado-fecha")
+    @Operation(summary = "Predios filtrados por estado y fecha")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> obtenerPrediosPorEstadoYFecha(
+            @RequestParam String estado, @RequestParam String fecha) {
+        List<Map<String, Object>> resultado = dashboardService.obtenerPrediosPorEstadoYFecha(estado, fecha);
+        return ResponseEntity.ok(ApiResponse.exito(resultado, "Predios por estado y fecha obtenidos"));
+    }
 }

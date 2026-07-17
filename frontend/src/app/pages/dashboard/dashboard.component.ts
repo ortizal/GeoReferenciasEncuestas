@@ -1,11 +1,10 @@
-import { Component, OnInit, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { PredioService } from '../../core/services/predio.service';
 import { Dashboard } from '../../core/models/models';
-import * as L from 'leaflet';
 
 @Component({
   selector: 'app-dashboard',
@@ -47,12 +46,27 @@ import * as L from 'leaflet';
         <!-- Chart Area -->
         <div class="card-premium chart-card">
           <div class="card-premium-header clickable" (click)="toggleCard('chart')">
-            <span class="card-premium-title"><i class="bi" [ngClass]="cardsState().chart ? 'bi-chevron-down' : 'bi-chevron-right'"></i> Visitas por Día</span>
+            <span class="card-premium-title"><i class="bi" [ngClass]="cardsState().chart ? 'bi-chevron-down' : 'bi-chevron-right'"></i> Visitas</span>
             <div class="chart-controls" (click)="$event.stopPropagation()">
-              <div class="date-filters">
-                <label>Desde: <input type="date" [ngModel]="fechaDesde()" (ngModelChange)="onFechaDesdeChange($event)" autocomplete="off"></label>
-                <label>Hasta: <input type="date" [ngModel]="fechaHasta()" (ngModelChange)="onFechaHastaChange($event)" autocomplete="off"></label>
-                <button class="filter-btn" (click)="aplicarFechas()">Aplicar</button>
+              <div class="chart-controls-row">
+                <div class="chart-mode-toggle">
+                  <button [class.active]="chartMode() === 'dia'" (click)="setChartMode('dia')">Día</button>
+                  <button [class.active]="chartMode() === 'semana'" (click)="setChartMode('semana')">Semana</button>
+                  <button [class.active]="chartMode() === 'mes'" (click)="setChartMode('mes')">Mes</button>
+                </div>
+                <div class="date-filters">
+                  <label>Desde: <input type="date" [ngModel]="fechaDesde()" (ngModelChange)="onFechaDesdeChange($event)" autocomplete="off"></label>
+                  <label>Hasta: <input type="date" [ngModel]="fechaHasta()" (ngModelChange)="onFechaHastaChange($event)" autocomplete="off"></label>
+                  <button class="filter-btn" (click)="aplicarFechas()">Aplicar</button>
+                </div>
+                <div class="chart-action-btns">
+                  <button class="icon-btn curve-btn" [class.active]="chartCurved()" (click)="toggleCurve()" title="Líneas curvas">
+                    <i class="bi" [ngClass]="chartCurved() ? 'bi-bezier2' : 'bi-graph-up'"></i>
+                  </button>
+                  <button class="icon-btn maximize-btn" (click)="chartMaximized.set(true)" title="Maximizar gráfico">
+                    <i class="bi bi-fullscreen"></i>
+                  </button>
+                </div>
               </div>
               <div class="chart-legend">
                 <span class="legend-item"><span class="legend-dot" style="background:#2563EB"></span>Positivo</span>
@@ -61,9 +75,6 @@ import * as L from 'leaflet';
                 <span class="legend-item"><span class="legend-dot" style="background:#6B7280"></span>En Blanco</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#1C1C1C"></span>No Trabajable</span>
               </div>
-              <button class="maximize-btn" (click)="chartMaximized.set(true)" title="Maximizar gráfico">
-                <i class="bi bi-fullscreen"></i>
-              </button>
             </div>
           </div>
           <div class="card-premium-body" *ngIf="cardsState().chart">
@@ -75,7 +86,12 @@ import * as L from 'leaflet';
                 <div class="chart-area">
                   <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" preserveAspectRatio="none" class="chart-svg">
                     <line *ngFor="let y of yGridLines()" [attr.x1]="0" [attr.y1]="y" [attr.x2]="chartWidth" [attr.y2]="y" class="grid-line"/>
-                    <polyline *ngFor="let line of chartLines()" [attr.points]="line.points" [attr.stroke]="line.color" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <ng-container *ngIf="!chartCurved()">
+                      <polyline *ngFor="let line of chartLines()" [attr.points]="line.points" [attr.stroke]="line.color" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </ng-container>
+                    <ng-container *ngIf="chartCurved()">
+                      <path *ngFor="let line of chartLines()" [attr.d]="line.path" [attr.stroke]="line.color" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </ng-container>
                     <g *ngFor="let line of chartLines()">
                       <circle *ngFor="let pt of line.dots; let i = index" [attr.cx]="pt.x" [attr.cy]="pt.y" r="3" [attr.fill]="line.color" class="chart-dot"/>
                       <text *ngFor="let pt of line.dots; let i = index" [attr.x]="pt.x" [attr.y]="pt.y - 8" [attr.fill]="line.color" class="chart-label" text-anchor="middle">{{ line.values[i] }}</text>
@@ -107,7 +123,7 @@ import * as L from 'leaflet';
                   <span class="dist-color" [style.background]="d.color"></span>
                 </label>
                 <span class="dist-label">{{ d.label }}</span>
-                <span class="dist-value">{{ d.value() }}</span>
+                <span class="dist-value clickable-dist" (click)="openPrediosModal(d.key)">{{ d.value() }}</span>
                 <div class="dist-bar">
                   <div class="dist-bar-fill" [style.width.%]="getDistPercent(d.value())" [style.background]="d.color"></div>
                 </div>
@@ -183,14 +199,100 @@ import * as L from 'leaflet';
           </div>
         </div>
 
-        <!-- Map Preview -->
-        <div class="card-premium map-preview-card">
-          <div class="card-premium-header clickable" (click)="toggleCard('map')">
-            <span class="card-premium-title"><i class="bi" [ngClass]="cardsState().map ? 'bi-chevron-down' : 'bi-chevron-right'"></i> Vista del Mapa</span>
-            <a class="view-all" routerLink="/mapa" (click)="$event.stopPropagation()">Abrir mapa</a>
+        <!-- Estadísticas por Grupo -->
+        <div class="card-premium grupo-stats-card">
+          <div class="card-premium-header clickable" (click)="toggleCard('grupoStats')">
+            <span class="card-premium-title"><i class="bi" [ngClass]="cardsState().grupoStats ? 'bi-chevron-down' : 'bi-chevron-right'"></i> Visitas por Grupo</span>
           </div>
-          <div class="card-premium-body no-padding" *ngIf="cardsState().map">
-            <div #miniMap class="mini-map-container"></div>
+          <div class="card-premium-body no-padding scrollable-body" *ngIf="cardsState().grupoStats">
+            <div class="grupo-stats-list">
+              <div class="grupo-stats-item" *ngFor="let g of grupoStats(); let i = index">
+                <div class="grupo-header">
+                  <span class="grupo-rank">{{ i + 1 }}</span>
+                  <div class="grupo-info">
+                    <span class="grupo-name">{{ g.grupo }}</span>
+                    <span class="grupo-total">{{ g.total }} visitas</span>
+                  </div>
+                </div>
+                <div class="grupo-bars">
+                  <div class="grupo-bar" *ngIf="g.positivos > 0" [style.width.%]="getGrupoBarPercent(g.positivos, g.total)" style="background:#2563EB" title="Positivos: {{ g.positivos }}">
+                    <span class="bar-num" *ngIf="g.positivos > g.total * 0.1">{{ g.positivos }}</span>
+                  </div>
+                  <div class="grupo-bar" *ngIf="g.negativos > 0" [style.width.%]="getGrupoBarPercent(g.negativos, g.total)" style="background:#DC2626" title="Negativos: {{ g.negativos }}">
+                    <span class="bar-num" *ngIf="g.negativos > g.total * 0.1">{{ g.negativos }}</span>
+                  </div>
+                  <div class="grupo-bar" *ngIf="g.indecisos > 0" [style.width.%]="getGrupoBarPercent(g.indecisos, g.total)" style="background:#F59E0B" title="Indecisos: {{ g.indecisos }}">
+                    <span class="bar-num" *ngIf="g.indecisos > g.total * 0.1">{{ g.indecisos }}</span>
+                  </div>
+                  <div class="grupo-bar" *ngIf="g.enBlanco > 0" [style.width.%]="getGrupoBarPercent(g.enBlanco, g.total)" style="background:#6B7280" title="En Blanco: {{ g.enBlanco }}">
+                    <span class="bar-num" *ngIf="g.enBlanco > g.total * 0.1">{{ g.enBlanco }}</span>
+                  </div>
+                  <div class="grupo-bar" *ngIf="g.noTrabajables > 0" [style.width.%]="getGrupoBarPercent(g.noTrabajables, g.total)" style="background:#1C1C1C" title="No Trabajables: {{ g.noTrabajables }}">
+                    <span class="bar-num" *ngIf="g.noTrabajables > g.total * 0.1">{{ g.noTrabajables }}</span>
+                  </div>
+                </div>
+                <div class="grupo-legend">
+                  <span *ngIf="g.positivos > 0"><span class="legend-dot-sm" style="background:#2563EB"></span>{{ g.positivos }}</span>
+                  <span *ngIf="g.negativos > 0"><span class="legend-dot-sm" style="background:#DC2626"></span>{{ g.negativos }}</span>
+                  <span *ngIf="g.indecisos > 0"><span class="legend-dot-sm" style="background:#F59E0B"></span>{{ g.indecisos }}</span>
+                  <span *ngIf="g.enBlanco > 0"><span class="legend-dot-sm" style="background:#6B7280"></span>{{ g.enBlanco }}</span>
+                  <span *ngIf="g.noTrabajables > 0"><span class="legend-dot-sm" style="background:#1C1C1C"></span>{{ g.noTrabajables }}</span>
+                </div>
+                <div class="grupo-meta">
+                  <span><i class="bi bi-person-check" style="color:#2563EB"></i> {{ g.apoyosAlcalde }}</span>
+                  <span><i class="bi bi-star-fill" style="color:#F59E0B"></i> {{ g.estrellas }}</span>
+                </div>
+              </div>
+              <div class="routes-empty" *ngIf="grupoStats().length === 0">
+                <span>No hay datos de grupos disponibles</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Predios por Estado -->
+    <div class="predios-modal-overlay" *ngIf="showPrediosModal()" (click)="showPrediosModal.set(false)">
+      <div class="predios-modal" (click)="$event.stopPropagation()">
+        <div class="predios-modal-header">
+          <h3><i class="bi bi-list-ul"></i> {{ prediosModalTitle() }}</h3>
+          <button class="modal-close-btn" (click)="showPrediosModal.set(false)"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="predios-modal-body">
+          <div class="predios-table-scroll" *ngIf="prediosModalData().length > 0">
+            <table class="predios-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th class="sortable" (click)="togglePrediosSort('claveCatastral')">Clave Catastral <i class="bi" [ngClass]="prediosSortIcon('claveCatastral')"></i></th>
+                  <th class="sortable" (click)="togglePrediosSort('propietario')">Propietario <i class="bi" [ngClass]="prediosSortIcon('propietario')"></i></th>
+                  <th class="sortable" (click)="togglePrediosSort('direccion')">Dirección <i class="bi" [ngClass]="prediosSortIcon('direccion')"></i></th>
+                  <th class="sortable" (click)="togglePrediosSort('estadoVisita')">Estado <i class="bi" [ngClass]="prediosSortIcon('estadoVisita')"></i></th>
+                  <th class="sortable" (click)="togglePrediosSort('fechaCreacion')">Fecha <i class="bi" [ngClass]="prediosSortIcon('fechaCreacion')"></i></th>
+                  <th>AR</th>
+                  <th>Estrella</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of prediosModalSorted(); let i = index">
+                  <td>{{ i + 1 }}</td>
+                  <td><code>{{ p.claveCatastral }}</code></td>
+                  <td>{{ p.propietario }}</td>
+                  <td>{{ p.direccion }}</td>
+                  <td>
+                    <span class="badge-premium" [style.background]="getStatusColor(p.estadoVisita)" style="color:#fff">{{ p.estadoVisita }}</span>
+                  </td>
+                  <td>{{ p.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td><i class="bi bi-person-check" *ngIf="p.apoyaAlcalde" style="color:#2563EB"></i></td>
+                  <td><i class="bi bi-star-fill" *ngIf="p.estrella" style="color:#F59E0B"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="chart-empty" *ngIf="prediosModalData().length === 0">
+            <i class="bi bi-inbox"></i>
+            <span>No hay predios para este filtro</span>
           </div>
         </div>
       </div>
@@ -202,6 +304,9 @@ import * as L from 'leaflet';
         <div class="chart-modal-header">
           <h3><i class="bi bi-graph-up"></i> Visitas por Día</h3>
           <div class="chart-modal-controls">
+            <button class="icon-btn curve-btn" [class.active]="chartCurved()" (click)="toggleCurve()" title="Líneas curvas">
+              <i class="bi" [ngClass]="chartCurved() ? 'bi-bezier2' : 'bi-graph-up'"></i>
+            </button>
             <div class="date-filters">
               <label>Desde: <input type="date" [ngModel]="fechaDesde()" (ngModelChange)="onFechaDesdeChange($event)" autocomplete="off"></label>
               <label>Hasta: <input type="date" [ngModel]="fechaHasta()" (ngModelChange)="onFechaHastaChange($event)" autocomplete="off"></label>
@@ -226,7 +331,12 @@ import * as L from 'leaflet';
               <div class="chart-area">
                 <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" preserveAspectRatio="none" class="chart-svg">
                   <line *ngFor="let y of yGridLines()" [attr.x1]="0" [attr.y1]="y" [attr.x2]="chartWidth" [attr.y2]="y" class="grid-line"/>
-                  <polyline *ngFor="let line of chartLines()" [attr.points]="line.points" [attr.stroke]="line.color" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <ng-container *ngIf="!chartCurved()">
+                    <polyline *ngFor="let line of chartLines()" [attr.points]="line.points" [attr.stroke]="line.color" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </ng-container>
+                  <ng-container *ngIf="chartCurved()">
+                    <path *ngFor="let line of chartLines()" [attr.d]="line.path" [attr.stroke]="line.color" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </ng-container>
                   <g *ngFor="let line of chartLines()">
                     <circle *ngFor="let pt of line.dots; let i = index" [attr.cx]="pt.x" [attr.cy]="pt.y" r="3" [attr.fill]="line.color" class="chart-dot"/>
                     <text *ngFor="let pt of line.dots; let i = index" [attr.x]="pt.x" [attr.y]="pt.y - 8" [attr.fill]="line.color" class="chart-label" text-anchor="middle">{{ line.values[i] }}</text>
@@ -284,20 +394,40 @@ import * as L from 'leaflet';
     .mini-label { font-size: var(--text-xs); color: var(--text-secondary); }
 
     .content-grid {
-      display: grid; grid-template-columns: 1fr 320px; grid-template-rows: auto auto auto auto auto;
+      display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto;
       gap: var(--space-4);
     }
-    .chart-card { grid-column: 1; grid-row: 1; }
-    .dist-card { grid-column: 2; grid-row: 1; }
-    .routes-positivos { grid-column: 1; grid-row: 2; }
-    .routes-ar { grid-column: 2; grid-row: 2; }
-    .activity-card { grid-column: 1; grid-row: 3; }
-    .map-preview-card { grid-column: 2; grid-row: 3; }
+    .chart-card { grid-column: 1 / -1; grid-row: 1; }
+    .dist-card { grid-column: 1; grid-row: 2; }
+    .grupo-stats-card { grid-column: 2; grid-row: 2; }
+    .routes-positivos { grid-column: 1; grid-row: 3; }
+    .routes-ar { grid-column: 2; grid-row: 3; }
+    .activity-card { grid-column: 1 / -1; grid-row: 4; }
 
     .clickable { cursor: pointer; user-select: none; }
     .clickable:hover { background: var(--bg-hover); }
 
     .chart-controls { display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-end; }
+    .chart-controls-row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: nowrap; }
+    .chart-action-btns { display: flex; align-items: center; gap: 4px; }
+    .icon-btn {
+      width: 28px; height: 28px; border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+      background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+      transition: all var(--transition-fast);
+      &:hover { background: var(--primary-50); color: var(--primary-600); border-color: var(--primary-300); }
+      &.active { background: var(--primary-600); color: #fff; border-color: var(--primary-600); }
+    }
+    .chart-mode-toggle {
+      display: flex; gap: 2px; background: var(--neutral-100); border-radius: var(--radius-sm); padding: 2px;
+      button {
+        padding: 2px 12px; border: none; background: transparent; border-radius: var(--radius-sm);
+        font-size: var(--text-xs); font-weight: 500; color: var(--text-secondary); cursor: pointer;
+        transition: all var(--transition-fast);
+        &.active { background: var(--primary-600); color: #fff; }
+        &:hover:not(.active) { background: var(--bg-hover); }
+      }
+    }
     .date-filters { display: flex; align-items: center; gap: var(--space-2); }
     .date-filters label { font-size: var(--text-xs); color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
     .date-filters input[type="date"] {
@@ -383,13 +513,25 @@ import * as L from 'leaflet';
 
     .mini-map-container { height: 260px; width: 100%; }
 
-    .maximize-btn {
-      width: 28px; height: 28px; border: 1px solid var(--border-default); border-radius: var(--radius-sm);
-      background: var(--bg-surface); color: var(--text-secondary); cursor: pointer;
-      display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
-      transition: all var(--transition-fast);
-      &:hover { background: var(--primary-50); color: var(--primary-600); border-color: var(--primary-300); }
+    .grupo-stats-list { display: flex; flex-direction: column; }
+    .grupo-stats-item {
+      padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-light);
+      &:last-child { border-bottom: none; }
     }
+    .grupo-header { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2); }
+    .grupo-rank {
+      width: 24px; height: 24px; border-radius: 50%; background: var(--primary-50); color: var(--primary-700);
+      display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: 700; flex-shrink: 0;
+    }
+    .grupo-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .grupo-name { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .grupo-total { font-size: var(--text-xs); color: var(--text-secondary); }
+    .grupo-bars { display: flex; gap: 2px; height: 6px; border-radius: 3px; overflow: hidden; background: var(--neutral-100); margin-bottom: var(--space-2); }
+    .grupo-bar { height: 100%; border-radius: 3px; transition: width 0.5s ease; min-width: 2px; }
+    .grupo-meta { display: flex; gap: var(--space-3); font-size: var(--text-xs); color: var(--text-secondary);
+      span { display: flex; align-items: center; gap: 3px; }
+    }
+
     .chart-modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
       display: flex; align-items: center; justify-content: center; z-index: 3000;
@@ -419,21 +561,57 @@ import * as L from 'leaflet';
     .modal-chart-scroll { flex: 1; overflow-x: auto; }
     .modal-line-chart { min-height: 300px; }
 
+    .predios-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; z-index: 3000;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .predios-modal {
+      background: var(--bg-surface); border-radius: var(--radius-xl); width: 90vw; max-width: 900px; max-height: 80vh;
+      display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
+      animation: fadeInUp 0.2s ease-out;
+    }
+    .predios-modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--border-light);
+      h3 { margin: 0; font-size: var(--text-lg); font-weight: 600; display: flex; align-items: center; gap: var(--space-2);
+        i { color: var(--primary-600); }
+      }
+    }
+    .predios-modal-body { flex: 1; padding: var(--space-4) var(--space-6); overflow: hidden; }
+    .predios-table-scroll { max-height: 60vh; overflow-y: auto; }
+    .predios-table { width: 100%; border-collapse: separate; border-spacing: 0;
+      thead th { position: sticky; top: 0; z-index: 1; padding: var(--space-3) var(--space-4); font-size: var(--text-xs); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; background: var(--neutral-50); border-bottom: 1px solid var(--border-default); white-space: nowrap; }
+      tbody tr { transition: background var(--transition-fast); &:hover { background: var(--bg-hover); } &:not(:last-child) td { border-bottom: 1px solid var(--border-light); } }
+      tbody td { padding: var(--space-3) var(--space-4); font-size: var(--text-sm); vertical-align: middle; }
+    }
+
+    .clickable-dist { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; &:hover { color: var(--primary-600); } }
+
+    .grupo-legend { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-2); font-size: var(--text-xs); color: var(--text-secondary);
+      span { display: flex; align-items: center; gap: 3px; }
+    }
+    .legend-dot-sm { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .bar-num { font-size: 8px; color: #fff; font-weight: 600; display: flex; align-items: center; justify-content: center; height: 100%; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    @media (max-width: 1200px) { .kpi-grid, .secondary-grid { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: 1fr; } .dist-card, .map-preview-card, .routes-positivos, .routes-ar, .activity-card { grid-column: 1; grid-row: auto; } }
+    @media (max-width: 1200px) { .kpi-grid, .secondary-grid { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: 1fr; } .dist-card, .grupo-stats-card, .routes-positivos, .routes-ar, .activity-card { grid-column: 1; grid-row: auto; } }
     @media (max-width: 768px) { .kpi-grid, .secondary-grid { grid-template-columns: 1fr; } }
   `]
 })
 export class DashboardComponent implements OnInit {
-  @ViewChild('miniMap') miniMapRef!: ElementRef<HTMLDivElement>;
-
   dashboard = signal<Dashboard | null>(null);
+  grupoStats = signal<any[]>([]);
 
-  private miniMap: L.Map | null = null;
-  private miniMapMarkerLayer: L.LayerGroup = new L.LayerGroup();
   chartMaximized = signal(false);
+  chartMode = signal<'dia' | 'semana' | 'mes'>('dia');
+  chartCurved = signal(true);
+
+  showPrediosModal = signal(false);
+  prediosModalTitle = signal('');
+  prediosModalData = signal<any[]>([]);
 
   kpis: any[] = [];
   secondaryKpis: any[] = [];
@@ -446,8 +624,8 @@ export class DashboardComponent implements OnInit {
     dist: true,
     routesPos: true,
     routesAR: true,
-    activity: false,
-    map: true,
+    activity: true,
+    grupoStats: true,
   });
 
   statusFilters = [
@@ -492,6 +670,7 @@ export class DashboardComponent implements OnInit {
     this.loadDashboard();
     this.cargarVisitasPorDia();
     this.loadTopRutas();
+    this.loadGrupoStats();
   }
 
   private formatDate(fecha: Date): string {
@@ -532,7 +711,18 @@ export class DashboardComponent implements OnInit {
   private rawChartData: any[] = [];
 
   cargarVisitasPorDia() {
-    this.dashboardService.obtenerVisitasPorDia(this.fechaDesde() || undefined, this.fechaHasta() || undefined).subscribe({
+    const desde = this.fechaDesde() || undefined;
+    const hasta = this.fechaHasta() || undefined;
+    const mode = this.chartMode();
+    let obs;
+    if (mode === 'semana') {
+      obs = this.dashboardService.obtenerVisitasPorSemana(desde, hasta);
+    } else if (mode === 'mes') {
+      obs = this.dashboardService.obtenerVisitasPorMes(desde, hasta);
+    } else {
+      obs = this.dashboardService.obtenerVisitasPorDia(desde, hasta);
+    }
+    obs.subscribe({
       next: (response) => {
         if (response.exitoso) {
           this.rawChartData = response.datos;
@@ -546,6 +736,26 @@ export class DashboardComponent implements OnInit {
   onFechaHastaChange(value: string) { this.fechaHasta.set(value); }
 
   aplicarFechas() { this.cargarVisitasPorDia(); }
+
+  setChartMode(mode: 'dia' | 'semana' | 'mes') {
+    this.chartMode.set(mode);
+    this.cargarVisitasPorDia();
+  }
+
+  toggleCurve() {
+    this.chartCurved.set(!this.chartCurved());
+    this.buildLineChart(this.rawChartData);
+  }
+
+  loadGrupoStats() {
+    this.dashboardService.obtenerStatsPorGrupo().subscribe({
+      next: (r) => { if (r.exitoso) this.grupoStats.set(r.datos || []); }
+    });
+  }
+
+  getGrupoBarPercent(value: number, total: number): number {
+    return total > 0 ? Math.min((value / total) * 100, 100) : 0;
+  }
 
   toggleStatusFilter(key: string) {
     const f = this.statusFilters.find(s => s.key === key);
@@ -566,6 +776,20 @@ export class DashboardComponent implements OnInit {
 
   getStatusColor(estado: string): string {
     return this.statusColors[estado] || '#6B7280';
+  }
+
+  openPrediosModal(estado: string) {
+    const labels: Record<string, string> = {
+      'POSITIVO': 'Positivos', 'NEGATIVO': 'Negativos', 'INDECISO': 'Indecisos',
+      'EN_BLANCO': 'En Blanco', 'NO_TRABAJABLE': 'No Trabajables',
+      'PENDIENTE': 'Pendientes', 'REPROGRAMADA': 'Reprogramadas'
+    };
+    this.prediosModalTitle.set(`Predios — ${labels[estado] || estado}`);
+    this.showPrediosModal.set(true);
+    this.dashboardService.obtenerPrediosPorEstado(estado).subscribe({
+      next: (r) => { if (r.exitoso) this.prediosModalData.set(r.datos || []); },
+      error: () => { this.prediosModalData.set([]); }
+    });
   }
 
   buildKPIs() {
@@ -604,8 +828,18 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
+    const mode = this.chartMode();
     const dateSet = new Set<string>();
-    data.forEach((d: any) => dateSet.add(d.fecha));
+    data.forEach((d: any) => {
+      if (mode === 'semana') {
+        dateSet.add(`S${d.semana}-${d.anio}`);
+      } else if (mode === 'mes') {
+        const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+        dateSet.add(`${meses[(d.mes || 1) - 1]}-${d.anio}`);
+      } else {
+        dateSet.add(d.fecha);
+      }
+    });
     const dates = Array.from(dateSet).sort();
     this.chartDays.set(dates);
     this.xLabelStep.set(Math.max(1, Math.floor(dates.length / 7)));
@@ -628,7 +862,16 @@ export class DashboardComponent implements OnInit {
       estadoData.set(e, map);
     });
     data.forEach((d: any) => {
-      estadoData.get(d.estado)?.set(d.fecha, d.total);
+      let key: string;
+      if (mode === 'semana') {
+        key = `S${d.semana}-${d.anio}`;
+      } else if (mode === 'mes') {
+        const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+        key = `${meses[(d.mes || 1) - 1]}-${d.anio}`;
+      } else {
+        key = d.fecha;
+      }
+      estadoData.get(d.estado)?.set(key, d.total);
     });
 
     let maxVal = 1;
@@ -670,6 +913,7 @@ export class DashboardComponent implements OnInit {
         estado,
         color: this.statusColors[estado] || '#6B7280',
         points: points.join(' '),
+        path: this.buildCurvedPath(dots),
         dots,
         values
       });
@@ -680,5 +924,26 @@ export class DashboardComponent implements OnInit {
   getDistPercent(value: number): number {
     const total = (this.dashboard()?.totalPredios || 1);
     return Math.min((value / total) * 100, 100);
+  }
+
+  private buildCurvedPath(dots: { x: number; y: number }[]): string {
+    if (dots.length < 2) return '';
+    if (dots.length === 2) {
+      return `M${dots[0].x},${dots[0].y} L${dots[1].x},${dots[1].y}`;
+    }
+    let d = `M${dots[0].x},${dots[0].y}`;
+    for (let i = 0; i < dots.length - 1; i++) {
+      const p0 = dots[Math.max(0, i - 1)];
+      const p1 = dots[i];
+      const p2 = dots[i + 1];
+      const p3 = dots[Math.min(dots.length - 1, i + 2)];
+      const tension = 0.3;
+      const cp1x = p1.x + (p2.x - p0.x) * tension;
+      const cp1y = p1.y + (p2.y - p0.y) * tension;
+      const cp2x = p2.x - (p3.x - p1.x) * tension;
+      const cp2y = p2.y - (p3.y - p1.y) * tension;
+      d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    return d;
   }
 }

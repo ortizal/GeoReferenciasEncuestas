@@ -95,4 +95,36 @@ public interface VisitaRepository extends JpaRepository<Visita, Long> {
            "GROUP BY v.predio.manzana.idManzana, v.predio.manzana.nombre " +
            "ORDER BY total DESC")
     List<Object[]> topManzanasByArEstrellas();
+
+    @Query("SELECT v.grupoBrigada, v.estadoVisita, COUNT(v), " +
+           "SUM(CASE WHEN v.apoyaAlcalde = true THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN v.estrella = true THEN 1 ELSE 0 END) " +
+           "FROM Visita v WHERE v.grupoBrigada IS NOT NULL AND v.grupoBrigada != '' " +
+           "GROUP BY v.grupoBrigada, v.estadoVisita")
+    List<Object[]> countVisitasByGrupoYEstado();
+
+    @Query("SELECT v.grupoBrigada, COUNT(v) " +
+           "FROM Visita v WHERE v.grupoBrigada IS NOT NULL AND v.grupoBrigada != '' " +
+           "GROUP BY v.grupoBrigada ORDER BY COUNT(v) DESC")
+    List<Object[]> countTotalVisitasByGrupo();
+
+    @Query(value = "SELECT EXTRACT(WEEK FROM v.fecha_creacion) as semana, " +
+           "EXTRACT(YEAR FROM v.fecha_creacion) as anio, " +
+           "v.estado_visita, COUNT(v.id_visita) " +
+           "FROM visitas v " +
+           "WHERE v.fecha_creacion BETWEEN :inicio AND :fin " +
+           "GROUP BY EXTRACT(YEAR FROM v.fecha_creacion), EXTRACT(WEEK FROM v.fecha_creacion), v.estado_visita " +
+           "ORDER BY anio, semana", nativeQuery = true)
+    List<Object[]> countVisitasBySemanaYEstado(@Param("inicio") LocalDateTime inicio,
+                                                @Param("fin") LocalDateTime fin);
+
+    @Query(value = "SELECT EXTRACT(MONTH FROM v.fecha_creacion) as mes, " +
+           "EXTRACT(YEAR FROM v.fecha_creacion) as anio, " +
+           "v.estado_visita, COUNT(v.id_visita) " +
+           "FROM visitas v " +
+           "WHERE v.fecha_creacion BETWEEN :inicio AND :fin " +
+           "GROUP BY EXTRACT(YEAR FROM v.fecha_creacion), EXTRACT(MONTH FROM v.fecha_creacion), v.estado_visita " +
+           "ORDER BY anio, mes", nativeQuery = true)
+    List<Object[]> countVisitasByMesYEstado(@Param("inicio") LocalDateTime inicio,
+                                             @Param("fin") LocalDateTime fin);
 }

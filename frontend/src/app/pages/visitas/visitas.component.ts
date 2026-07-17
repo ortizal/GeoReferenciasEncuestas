@@ -51,9 +51,13 @@ import { Visita } from '../../core/models/models';
             <table class="table-premium">
               <thead><tr>
                 <th class="sortable" (click)="toggleSort('predio.claveCatastral')">Predio <i class="bi" [ngClass]="sortIcon('predio.claveCatastral')"></i></th>
-                <th>Propietario</th>
+                <th class="sortable" (click)="toggleSort('propietarioPredio')">Propietario <i class="bi" [ngClass]="sortIcon('propietarioPredio')"></i></th>
                 <th class="sortable" (click)="toggleSort('estadoVisita')">Estado <i class="bi" [ngClass]="sortIcon('estadoVisita')"></i></th>
-                <th>Brigada</th><th>Grupo</th><th>Parroquia</th><th>Barrio</th><th>AR</th><th>Estrella</th>
+                <th class="sortable" (click)="toggleSort('nombreBrigada')">Brigada <i class="bi" [ngClass]="sortIcon('nombreBrigada')"></i></th>
+                <th class="sortable" (click)="toggleSort('grupoBrigada')">Grupo <i class="bi" [ngClass]="sortIcon('grupoBrigada')"></i></th>
+                <th class="sortable" (click)="toggleSort('parroquia')">Parroquia <i class="bi" [ngClass]="sortIcon('parroquia')"></i></th>
+                <th class="sortable" (click)="toggleSort('barrio')">Barrio <i class="bi" [ngClass]="sortIcon('barrio')"></i></th>
+                <th>AR</th><th>Estrella</th>
                 <th class="sortable" (click)="toggleSort('fechaVisita')">Fecha <i class="bi" [ngClass]="sortIcon('fechaVisita')"></i></th>
                 <th></th>
               </tr></thead>
@@ -131,17 +135,17 @@ import { Visita } from '../../core/models/models';
       <!-- Modal Importar Visitas - Paso 2: Vista previa -->
       <div class="modal-overlay" *ngIf="showPreview()" (click)="onPreviewOverlayClick($event)">
         <div class="modal-card modal-xl" (click)="$event.stopPropagation()">
-          <div class="modal-header">
-            <h4>Vista Previa — {{ previewData().length }} registros a importar</h4>
-            <button class="modal-close" (click)="cerrarPreview()" [disabled]="importando()"><i class="bi bi-x"></i></button>
-          </div>
-          <div class="modal-body modal-body-table">
-            <!-- Progress bar during import -->
+          <div class="modal-header modal-header-import">
+            <div class="modal-header-left">
+              <h4>Vista Previa — {{ previewData().length }} registros</h4>
+              <button class="modal-close" (click)="cerrarPreview()" [disabled]="importando()"><i class="bi bi-x"></i></button>
+            </div>
             <div class="import-progress-bar" *ngIf="importando()">
               <div class="progress-info">
                 <span class="progress-text">Importando {{ importProgress().current }} de {{ importProgress().total }}...</span>
                 <span class="progress-counts">
                   <span class="count-ok"><i class="bi bi-check-circle-fill"></i> {{ importProgress().imported }}</span>
+                  <span class="count-auto" *ngIf="importProgress().autoCreated > 0"><i class="bi bi-plus-circle-fill"></i> {{ importProgress().autoCreated }} nuevos</span>
                   <span class="count-dup" *ngIf="importProgress().duplicated > 0"><i class="bi bi-copy"></i> {{ importProgress().duplicated }}</span>
                   <span class="count-err" *ngIf="importProgress().errors > 0"><i class="bi bi-x-circle-fill"></i> {{ importProgress().errors }}</span>
                 </span>
@@ -150,7 +154,8 @@ import { Visita } from '../../core/models/models';
                 <div class="progress-fill-bar" [style.width.%]="importProgressPercent()"></div>
               </div>
             </div>
-
+          </div>
+          <div class="modal-body modal-body-table">
             <div class="preview-stats">
               <span class="stat"><i class="bi bi-check-circle-fill text-success"></i> {{ countByEstado('POSITIVO') }} Positivos</span>
               <span class="stat"><i class="bi bi-x-circle-fill text-danger"></i> {{ countByEstado('NEGATIVO') }} Negativos</span>
@@ -159,7 +164,7 @@ import { Visita } from '../../core/models/models';
               <span class="stat"><i class="bi bi-eye-slash"></i> {{ countByEstado('EN_BLANCO') }} En Blanco</span>
             </div>
             <div class="preview-no-encontrados" *ngIf="countNoEncontrados() > 0 && !importando()">
-              <i class="bi bi-exclamation-triangle text-warning"></i> {{ countNoEncontrados() }} predios no serán importados (clave no encontrada)
+              <i class="bi bi-info-circle text-info"></i> {{ countNoEncontrados() }} predios no encontrados — se crearán automáticamente
               <button class="btn-download-report" (click)="descargarReporteNoEncontrados()"><i class="bi bi-download"></i> Descargar Reporte</button>
             </div>
             <div class="table-responsive">
@@ -172,17 +177,19 @@ import { Visita } from '../../core/models/models';
                   <tr *ngFor="let v of previewData().slice(0, previewLimit())"
                       [class.row-not-found]="!v.idPredio"
                       [class.row-imported]="getRowStatus(v.claveCatastralPredio) === 'IMPORTED'"
+                      [class.row-auto-created]="getRowStatus(v.claveCatastralPredio) === 'AUTO_CREATED'"
                       [class.row-duplicate]="getRowStatus(v.claveCatastralPredio) === 'DUPLICATE'"
                       [class.row-error-status]="getRowStatus(v.claveCatastralPredio) === 'ERROR'"
                       [class.row-notfound-status]="getRowStatus(v.claveCatastralPredio) === 'NOT_FOUND'">
                     <td *ngIf="importando()" class="col-status">
                       <i class="bi row-icon" *ngIf="getRowStatus(v.claveCatastralPredio)"
-                         [ngClass]="{
-                           'bi-check-circle-fill text-success': getRowStatus(v.claveCatastralPredio) === 'IMPORTED',
-                           'bi-copy text-warning': getRowStatus(v.claveCatastralPredio) === 'DUPLICATE',
-                           'bi-x-circle-fill text-danger': getRowStatus(v.claveCatastralPredio) === 'ERROR',
-                           'bi-question-circle-fill text-muted': getRowStatus(v.claveCatastralPredio) === 'NOT_FOUND'
-                         }"></i>
+                      [ngClass]="{
+                            'bi-check-circle-fill text-success': getRowStatus(v.claveCatastralPredio) === 'IMPORTED',
+                            'bi-plus-circle-fill text-info': getRowStatus(v.claveCatastralPredio) === 'AUTO_CREATED',
+                            'bi-copy text-warning': getRowStatus(v.claveCatastralPredio) === 'DUPLICATE',
+                            'bi-x-circle-fill text-danger': getRowStatus(v.claveCatastralPredio) === 'ERROR',
+                            'bi-question-circle-fill text-muted': getRowStatus(v.claveCatastralPredio) === 'NOT_FOUND'
+                          }"></i>
                       <i class="bi bi-hourglass-split text-muted" *ngIf="!getRowStatus(v.claveCatastralPredio) && getRowIndex(v) < importProgress().current"></i>
                     </td>
                     <td><code class="cell-code">{{ v.claveCatastralPredio }}</code></td>
@@ -205,7 +212,7 @@ import { Visita } from '../../core/models/models';
           <div class="modal-footer">
             <button class="btn-cancel" (click)="cerrarPreview()" [disabled]="importando()">{{ importando() ? 'Importando...' : 'Cancelar' }}</button>
             <button class="btn-save btn-confirm" *ngIf="!importando()" (click)="confirmarImportacion()" [disabled]="guardando()">
-              <i class="bi bi-check-lg"></i> Confirmar Importación ({{ countValidos() }})
+              <i class="bi bi-check-lg"></i> Confirmar Importación ({{ previewData().length }})
             </button>
           </div>
         </div>
@@ -218,6 +225,9 @@ import { Visita } from '../../core/models/models';
             <i class="bi bi-check-circle-fill" style="font-size: 3rem; color: var(--success-500);"></i>
             <h4 style="margin: var(--space-4) 0 var(--space-2);">{{ exitoMensaje() }}</h4>
             <p style="color: var(--text-secondary); font-size: var(--text-sm);" *ngIf="exitoDetalle()">{{ exitoDetalle() }}</p>
+            <button class="btn-download-report-sm" *ngIf="lastImportNotFoundCount() > 0" (click)="descargarReporteNoEncontradosLast()">
+              <i class="bi bi-download"></i> Descargar Reporte de Excepciones ({{ lastImportNotFoundCount() }})
+            </button>
           </div>
           <div class="modal-footer" style="justify-content: center;">
             <button class="btn-save" (click)="cerrarExito(); buscar()">Aceptar</button>
@@ -277,6 +287,8 @@ import { Visita } from '../../core/models/models';
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
     .modal-card { background: var(--bg-surface); border-radius: var(--radius-2xl); width: 90%; max-width: 500px; box-shadow: var(--shadow-lg); animation: fadeInUp 0.2s ease-out; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-light); h4 { margin: 0; font-size: var(--text-lg); font-weight: 600; } }
+    .modal-header-import { flex-direction: column; align-items: stretch; padding: 0; }
+    .modal-header-left { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); }
     .modal-close { background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: var(--space-1); border-radius: var(--radius-sm); &:hover { background: var(--bg-hover); } }
     .modal-body { padding: var(--space-6); }
     .modal-footer { display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border-light); }
@@ -307,23 +319,26 @@ import { Visita } from '../../core/models/models';
     .row-duplicate { background: rgba(245,158,11,0.08) !important; }
     .row-error-status { background: rgba(239,68,68,0.08) !important; }
     .row-notfound-status { background: rgba(156,163,175,0.08) !important; }
+    .row-auto-created { background: rgba(59,130,246,0.08) !important; }
     .row-not-found { opacity: 0.7; }
     .preview-stats { display: flex; gap: var(--space-4); padding: var(--space-3) var(--space-4); background: var(--neutral-50); border-bottom: 1px solid var(--border-light); flex-wrap: wrap; }
     .preview-stats .stat { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); font-weight: 500; color: var(--text-secondary); }
-    .preview-no-encontrados { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); background: rgba(245,158,11,0.1); color: #d97706; font-size: var(--text-xs); font-weight: 500; }
-    .btn-download-report { margin-left: auto; padding: var(--space-1) var(--space-3); border: 1px solid #d97706; border-radius: var(--radius-md); background: transparent; color: #d97706; font-size: var(--text-xs); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: var(--space-1); transition: all var(--transition-fast); &:hover { background: #d97706; color: #fff; } }
+    .preview-no-encontrados { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); background: rgba(59,130,246,0.1); color: #2563eb; font-size: var(--text-xs); font-weight: 500; }
+    .btn-download-report { margin-left: auto; padding: var(--space-1) var(--space-3); border: 1px solid #2563eb; border-radius: var(--radius-md); background: transparent; color: #2563eb; font-size: var(--text-xs); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: var(--space-1); transition: all var(--transition-fast); &:hover { background: #2563eb; color: #fff; } }
     .btn-load-more { display: block; width: 100%; padding: var(--space-3); border: none; background: var(--neutral-50); color: var(--primary-600); font-size: var(--text-sm); font-weight: 500; cursor: pointer; text-align: center; &:hover { background: var(--neutral-100); } }
     .import-result.error { background: var(--danger-50); color: var(--danger-600); }
     .import-result.error i { color: var(--danger-600); }
-    .import-progress-bar { padding: var(--space-3) var(--space-4); background: var(--primary-50); border-bottom: 1px solid var(--primary-200); }
+    .import-progress-bar { padding: var(--space-3) var(--space-6); background: var(--primary-50); border-bottom: 1px solid var(--primary-200); }
     .progress-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2); }
     .progress-text { font-size: var(--text-sm); font-weight: 600; color: var(--primary-700); }
     .progress-counts { display: flex; gap: var(--space-3); font-size: var(--text-xs); font-weight: 500; }
     .count-ok { color: #16a34a; display: flex; align-items: center; gap: 2px; }
+    .count-auto { color: #3b82f6; display: flex; align-items: center; gap: 2px; }
     .count-dup { color: #d97706; display: flex; align-items: center; gap: 2px; }
     .count-err { color: #dc2626; display: flex; align-items: center; gap: 2px; }
     .progress-track { height: 6px; background: var(--primary-200); border-radius: 3px; overflow: hidden; }
     .progress-fill-bar { height: 100%; background: var(--primary-600); border-radius: 3px; transition: width 0.15s ease-out; }
+    .btn-download-report-sm { display: inline-flex; align-items: center; gap: var(--space-2); margin-top: var(--space-4); padding: var(--space-2) var(--space-4); border: 1px solid var(--primary-600); border-radius: var(--radius-md); background: transparent; color: var(--primary-600); font-size: var(--text-sm); font-weight: 500; cursor: pointer; transition: all var(--transition-fast); &:hover { background: var(--primary-600); color: #fff; } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes progressIndeterminate { 0% { width: 0%; margin-left: 0; } 50% { width: 60%; margin-left: 20%; } 100% { width: 0%; margin-left: 100%; } }
@@ -336,9 +351,11 @@ export class VisitasComponent implements OnInit, OnDestroy {
   archivoFile: File | null = null;
   previewData = signal<Visita[]>([]); previewLimit = signal(50);
   importando = signal(false);
-  importProgress = signal<ImportProgress>({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, updated: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
+  importProgress = signal<ImportProgress>({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, updated: 0, duplicated: 0, errors: 0, notFound: 0, autoCreated: 0, completed: false });
   rowStatusMap = signal<Map<string, string>>(new Map());
   importProgressPercent = signal(0);
+  lastImportNotFoundCount = signal(0);
+  lastImportNotFoundData = signal<Visita[]>([]);
 
   fechaDesde = '';
   fechaHasta = '';
@@ -431,7 +448,7 @@ export class VisitasComponent implements OnInit, OnDestroy {
   abrirImportar() { this.archivoSeleccionado.set(false); this.archivoNombre.set(''); this.resultadoImportacion.set(''); this.showImportar.set(true); this.showPreview.set(false); }
   cerrarImportar() { this.showImportar.set(false); this.showPreview.set(false); this.previewData.set([]); this.resetImportState(); }
   cerrarPreview() { if (this.importando()) return; this.showPreview.set(false); this.previewData.set([]); this.resetImportState(); }
-  cerrarExito() { this.showExito.set(false); this.exitoDetalle.set(''); }
+  cerrarExito() { this.showExito.set(false); this.exitoDetalle.set(''); this.lastImportNotFoundCount.set(0); this.lastImportNotFoundData.set([]); }
   onFileSelected(event: Event) { const input = event.target as HTMLInputElement; if (input.files && input.files.length > 0) { this.archivoFile = input.files[0]; this.archivoNombre.set(input.files[0].name); this.archivoSeleccionado.set(true); } }
 
   onPreviewOverlayClick(event: Event) {
@@ -441,7 +458,7 @@ export class VisitasComponent implements OnInit, OnDestroy {
   private resetImportState() {
     this.importando.set(false);
     this.rowStatusMap.set(new Map());
-    this.importProgress.set({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, updated: 0, duplicated: 0, errors: 0, notFound: 0, completed: false });
+    this.importProgress.set({ sessionId: '', current: 0, total: 0, rowKey: '', rowStatus: '', imported: 0, updated: 0, duplicated: 0, errors: 0, notFound: 0, autoCreated: 0, completed: false });
     this.importProgressPercent.set(0);
     if (this.unsubscribeProgress) {
       this.unsubscribeProgress();
@@ -469,8 +486,8 @@ export class VisitasComponent implements OnInit, OnDestroy {
   }
 
   confirmarImportacion() {
-    const validos = this.previewData().filter(v => v.idPredio);
-    if (validos.length === 0) return;
+    const todos = this.previewData();
+    if (todos.length === 0) return;
     this.guardando.set(true);
     this.importando.set(true);
     this.rowStatusMap.set(new Map());
@@ -493,20 +510,24 @@ export class VisitasComponent implements OnInit, OnDestroy {
       if (msg.completed) {
         this.importando.set(false);
         this.guardando.set(false);
+        const notFoundData = this.previewData().filter(v => !v.idPredio);
+        this.lastImportNotFoundCount.set(msg.notFound);
+        this.lastImportNotFoundData.set(notFoundData);
         this.showPreview.set(false);
         this.showImportar.set(false);
         this.previewData.set([]);
         this.exitoMensaje.set(`${msg.imported} visitas importadas`);
         let detalle = 'La importación se completó exitosamente.';
+        if (msg.autoCreated > 0) detalle += ` ${msg.autoCreated} predios creados automáticamente.`;
         if (msg.duplicated > 0) detalle += ` ${msg.duplicated} duplicadas omitidas.`;
-        if (msg.notFound > 0) detalle += ` ${msg.notFound} no encontradas.`;
+        if (msg.notFound > 0) detalle += ` ${msg.notFound} no pudieron crearse.`;
         this.exitoDetalle.set(detalle);
         this.showExito.set(true);
         if (this.unsubscribeProgress) { this.unsubscribeProgress(); this.unsubscribeProgress = null; }
       }
     });
 
-    this.visitaService.confirmarImportacion(validos, sessionId).subscribe({
+    this.visitaService.confirmarImportacion(todos, sessionId).subscribe({
       next: (r) => {
         if (!r.exitoso) {
           this.guardando.set(false);
@@ -528,6 +549,22 @@ export class VisitasComponent implements OnInit, OnDestroy {
     const noEncontrados = this.previewData().filter(v => !v.idPredio);
     if (noEncontrados.length === 0) return;
     this.visitaService.descargarReporteNoEncontrados(noEncontrados).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'predios_no_encontrados.xlsx';
+        link.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => alert('Error al descargar reporte')
+    });
+  }
+
+  descargarReporteNoEncontradosLast() {
+    const data = this.lastImportNotFoundData();
+    if (data.length === 0) return;
+    this.visitaService.descargarReporteNoEncontrados(data).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');

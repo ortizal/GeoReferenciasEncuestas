@@ -1,6 +1,5 @@
 package com.georeferencias.dto;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +15,6 @@ import java.time.LocalTime;
 public class VisitaDTO {
     private Long idVisita;
 
-    @NotNull(message = "El predio es obligatorio")
     private Long idPredio;
     private String claveCatastralPredio;
     private String propietarioPredio;
@@ -24,10 +22,8 @@ public class VisitaDTO {
     private Long idUsuarioVisitador;
     private String nombreVisitador;
 
-    @NotNull(message = "La fecha de visita es obligatoria")
     private LocalDateTime fechaVisita;
 
-    @NotNull(message = "El estado es obligatorio")
     private String estadoVisita;
 
     private String observaciones;

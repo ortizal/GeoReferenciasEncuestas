@@ -126,8 +126,43 @@ public class PredioServiceImpl implements PredioService {
     @Override
     @Transactional(readOnly = true)
     public Page<PredioDTO> buscar(String busqueda, Boolean activo, Pageable pageable) {
-        return predioRepository.buscarConFiltros(busqueda, activo, pageable)
-                .map(this::mapToDTO);
+        List<Object[]> datos = predioRepository.buscarConEstadoVisita(busqueda);
+        java.util.Map<Long, String> estadoMap = new java.util.HashMap<>();
+        java.util.Map<Long, java.time.LocalDateTime> fechaMap = new java.util.HashMap<>();
+        java.util.Map<Long, Boolean> arMap = new java.util.HashMap<>();
+        java.util.Map<Long, Boolean> estrellaMap = new java.util.HashMap<>();
+        for (Object[] fila : datos) {
+            Long idPredio = ((Number) fila[0]).longValue();
+            String estado = fila[1] != null ? fila[1].toString() : null;
+            java.time.LocalDateTime fecha = null;
+            if (fila[2] instanceof java.sql.Timestamp ts) {
+                fecha = ts.toLocalDateTime();
+            } else if (fila[2] instanceof java.time.LocalDateTime ldt) {
+                fecha = ldt;
+            }
+            Boolean apoyaAlcalde = fila[3] != null && Boolean.TRUE.equals(fila[3]);
+            Boolean estrella = fila[4] != null && Boolean.TRUE.equals(fila[4]);
+            if (estado != null) estadoMap.put(idPredio, estado);
+            if (fecha != null) fechaMap.put(idPredio, fecha);
+            if (Boolean.TRUE.equals(apoyaAlcalde)) arMap.put(idPredio, true);
+            if (Boolean.TRUE.equals(estrella)) estrellaMap.put(idPredio, true);
+        }
+
+        List<PredioDTO> allDtOs = predioRepository.findAllActivos().stream()
+                .map(p -> {
+                    PredioDTO dto = mapToDTO(p);
+                    dto.setEstadoVisita(estadoMap.get(p.getIdPredio()));
+                    dto.setFechaUltimaVisita(fechaMap.get(p.getIdPredio()));
+                    dto.setApoyaAlcalde(arMap.getOrDefault(p.getIdPredio(), false));
+                    dto.setEstrella(estrellaMap.getOrDefault(p.getIdPredio(), false));
+                    return dto;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), allDtOs.size());
+        java.util.List<PredioDTO> pageContent = start < allDtOs.size() ? allDtOs.subList(start, end) : java.util.Collections.emptyList();
+        return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, allDtOs.size());
     }
 
     @Override

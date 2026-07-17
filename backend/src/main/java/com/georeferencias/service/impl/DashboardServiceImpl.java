@@ -204,4 +204,132 @@ public class DashboardServiceImpl implements DashboardService {
         }
         return resultado;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerVisitasPorSemana(LocalDateTime inicio, LocalDateTime fin) {
+        if (inicio == null) inicio = YearMonth.now().minusMonths(1).atDay(1).atStartOfDay();
+        if (fin == null) fin = LocalDateTime.now();
+
+        List<Object[]> datos = visitaRepository.countVisitasBySemanaYEstado(inicio, fin);
+        List<Map<String, Object>> resultado = new ArrayList<>();
+
+        for (Object[] fila : datos) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("semana", fila[0]);
+            item.put("anio", fila[1]);
+            item.put("estado", fila[2].toString());
+            item.put("total", fila[3]);
+            resultado.add(item);
+        }
+
+        return resultado;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerVisitasPorMes(LocalDateTime inicio, LocalDateTime fin) {
+        if (inicio == null) inicio = YearMonth.now().minusMonths(5).atDay(1).atStartOfDay();
+        if (fin == null) fin = LocalDateTime.now();
+
+        List<Object[]> datos = visitaRepository.countVisitasByMesYEstado(inicio, fin);
+        List<Map<String, Object>> resultado = new ArrayList<>();
+
+        for (Object[] fila : datos) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("mes", fila[0]);
+            item.put("anio", fila[1]);
+            item.put("estado", fila[2].toString());
+            item.put("total", fila[3]);
+            resultado.add(item);
+        }
+
+        return resultado;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerStatsPorGrupo() {
+        List<Object[]> totales = visitaRepository.countTotalVisitasByGrupo();
+        List<Object[]> porEstado = visitaRepository.countVisitasByGrupoYEstado();
+
+        java.util.Map<String, Map<String, Long>> estadoMap = new java.util.LinkedHashMap<>();
+        java.util.Map<String, Long> arMap = new java.util.HashMap<>();
+        java.util.Map<String, Long> estrellaMap = new java.util.HashMap<>();
+
+        for (Object[] fila : totales) {
+            String grupo = (String) fila[0];
+            Long total = ((Number) fila[1]).longValue();
+            estadoMap.computeIfAbsent(grupo, k -> new java.util.HashMap<>()).put("TOTAL", total);
+        }
+
+        for (Object[] fila : porEstado) {
+            String grupo = (String) fila[0];
+            String estado = fila[1] != null ? fila[1].toString() : "SIN_ESTADO";
+            Long count = ((Number) fila[2]).longValue();
+            Long ar = ((Number) fila[3]).longValue();
+            Long estrella = ((Number) fila[4]).longValue();
+            estadoMap.computeIfAbsent(grupo, k -> new java.util.HashMap<>()).put(estado, count);
+            arMap.merge(grupo, ar, Long::sum);
+            estrellaMap.merge(grupo, estrella, Long::sum);
+        }
+
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        for (Map.Entry<String, Map<String, Long>> entry : estadoMap.entrySet()) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("grupo", entry.getKey());
+            item.put("total", entry.getValue().getOrDefault("TOTAL", 0L));
+            item.put("positivos", entry.getValue().getOrDefault("POSITIVO", 0L));
+            item.put("negativos", entry.getValue().getOrDefault("NEGATIVO", 0L));
+            item.put("indecisos", entry.getValue().getOrDefault("INDECISO", 0L));
+            item.put("enBlanco", entry.getValue().getOrDefault("EN_BLANCO", 0L));
+            item.put("noTrabajables", entry.getValue().getOrDefault("NO_TRABAJABLE", 0L));
+            item.put("apoyosAlcalde", arMap.getOrDefault(entry.getKey(), 0L));
+            item.put("estrellas", estrellaMap.getOrDefault(entry.getKey(), 0L));
+            resultado.add(item);
+        }
+
+        resultado.sort((a, b) -> Long.compare((Long) b.get("total"), (Long) a.get("total")));
+        return resultado;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerPrediosPorEstado(String estado) {
+        List<Object[]> datos = predioRepository.findPrediosByEstadoVisita(estado);
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        for (Object[] fila : datos) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("idPredio", fila[0]);
+            item.put("claveCatastral", fila[1]);
+            item.put("propietario", fila[2]);
+            item.put("direccion", fila[3]);
+            item.put("estadoVisita", fila[4] != null ? fila[4].toString() : null);
+            item.put("fechaCreacion", fila[5] != null ? fila[5].toString() : null);
+            item.put("apoyaAlcalde", fila[6]);
+            item.put("estrella", fila[7]);
+            resultado.add(item);
+        }
+        return resultado;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerPrediosPorEstadoYFecha(String estado, String fecha) {
+        List<Object[]> datos = predioRepository.findPrediosByEstadoYFecha(estado, fecha);
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        for (Object[] fila : datos) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("idPredio", fila[0]);
+            item.put("claveCatastral", fila[1]);
+            item.put("propietario", fila[2]);
+            item.put("direccion", fila[3]);
+            item.put("estadoVisita", fila[4] != null ? fila[4].toString() : null);
+            item.put("fechaCreacion", fila[5] != null ? fila[5].toString() : null);
+            item.put("apoyaAlcalde", fila[6]);
+            item.put("estrella", fila[7]);
+            resultado.add(item);
+        }
+        return resultado;
+    }
 }

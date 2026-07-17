@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { loginGuard } from './core/guards/login.guard';
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   {
@@ -24,10 +25,12 @@ export const routes: Routes = [
       },
       {
         path: 'manzanas',
+        canActivate: [roleGuard(['ADMINISTRADOR'])],
         loadComponent: () => import('./pages/manzanas/manzanas.component').then(m => m.ManzanasComponent)
       },
       {
         path: 'predios',
+        canActivate: [roleGuard(['ADMINISTRADOR', 'SUPERVISOR'])],
         loadComponent: () => import('./pages/predios/predios.component').then(m => m.PrediosComponent)
       },
       {
@@ -40,14 +43,17 @@ export const routes: Routes = [
       },
       {
         path: 'reportes',
+        canActivate: [roleGuard(['ADMINISTRADOR', 'SUPERVISOR'])],
         loadComponent: () => import('./pages/reportes/reportes.component').then(m => m.ReportesComponent)
       },
       {
         path: 'usuarios',
+        canActivate: [roleGuard(['ADMINISTRADOR'])],
         loadComponent: () => import('./pages/usuarios/usuarios.component').then(m => m.UsuariosComponent)
       },
       {
         path: 'configuracion',
+        canActivate: [roleGuard(['ADMINISTRADOR'])],
         loadComponent: () => import('./pages/configuracion/configuracion.component').then(m => m.ConfiguracionComponent)
       }
     ]

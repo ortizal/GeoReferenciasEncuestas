@@ -19,5 +19,6 @@ public class ImportProgressMessage {
     private int duplicated;
     private int errors;
     private int notFound;
+    private int autoCreated;
     private boolean completed;
 }
