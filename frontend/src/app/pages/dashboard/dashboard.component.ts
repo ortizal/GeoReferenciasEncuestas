@@ -585,6 +585,7 @@ import { Dashboard } from '../../core/models/models';
       tbody tr { transition: background var(--transition-fast); &:hover { background: var(--bg-hover); } &:not(:last-child) td { border-bottom: 1px solid var(--border-light); } }
       tbody td { padding: var(--space-3) var(--space-4); font-size: var(--text-sm); vertical-align: middle; }
     }
+    .predios-table .sortable { cursor: pointer; user-select: none; &:hover { color: var(--primary-600); } i { font-size: 0.625rem; margin-left: 2px; } }
 
     .clickable-dist { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; &:hover { color: var(--primary-600); } }
 
@@ -612,6 +613,25 @@ export class DashboardComponent implements OnInit {
   showPrediosModal = signal(false);
   prediosModalTitle = signal('');
   prediosModalData = signal<any[]>([]);
+
+  prediosSortField = signal('');
+  prediosSortDir = signal<'asc'|'desc'>('asc');
+
+  prediosModalSorted = computed(() => {
+    const data = [...this.prediosModalData()];
+    const field = this.prediosSortField();
+    const dir = this.prediosSortDir();
+    if (!field) return data;
+    return data.sort((a: any, b: any) => {
+      let va = a[field] ?? '';
+      let vb = b[field] ?? '';
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      if (va < vb) return dir === 'asc' ? -1 : 1;
+      if (va > vb) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  });
 
   kpis: any[] = [];
   secondaryKpis: any[] = [];
@@ -695,16 +715,19 @@ export class DashboardComponent implements OnInit {
           this.dashboard.set(response.datos);
           this.buildKPIs();
         }
-      }
+      },
+      error: () => {}
     });
   }
 
   loadTopRutas() {
     this.dashboardService.topManzanasPositivos().subscribe({
-      next: (r) => { if (r.exitoso) this.topPositivos.set(r.datos || []); }
+      next: (r) => { if (r.exitoso) this.topPositivos.set(r.datos || []); },
+      error: () => {}
     });
     this.dashboardService.topManzanasArEstrellas().subscribe({
-      next: (r) => { if (r.exitoso) this.topArEstrellas.set(r.datos || []); }
+      next: (r) => { if (r.exitoso) this.topArEstrellas.set(r.datos || []); },
+      error: () => {}
     });
   }
 
@@ -728,7 +751,8 @@ export class DashboardComponent implements OnInit {
           this.rawChartData = response.datos;
           this.buildLineChart(response.datos);
         }
-      }
+      },
+      error: () => {}
     });
   }
 
@@ -749,7 +773,8 @@ export class DashboardComponent implements OnInit {
 
   loadGrupoStats() {
     this.dashboardService.obtenerStatsPorGrupo().subscribe({
-      next: (r) => { if (r.exitoso) this.grupoStats.set(r.datos || []); }
+      next: (r) => { if (r.exitoso) this.grupoStats.set(r.datos || []); },
+      error: () => { this.grupoStats.set([]); }
     });
   }
 
@@ -776,6 +801,20 @@ export class DashboardComponent implements OnInit {
 
   getStatusColor(estado: string): string {
     return this.statusColors[estado] || '#6B7280';
+  }
+
+  togglePrediosSort(field: string) {
+    if (this.prediosSortField() === field) {
+      this.prediosSortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.prediosSortField.set(field);
+      this.prediosSortDir.set('asc');
+    }
+  }
+
+  prediosSortIcon(field: string): string {
+    if (this.prediosSortField() !== field) return 'bi-arrow-down-up';
+    return this.prediosSortDir() === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down';
   }
 
   openPrediosModal(estado: string) {
